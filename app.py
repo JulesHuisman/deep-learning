@@ -53,6 +53,9 @@ class TraderFlow(FlowSpec):
 
     @step
     def join_stocks(self, inputs):
+        """
+        Join all the stock data into one dataframe
+        """
         self.df = pd.concat([input.stocks for input in inputs], axis=1)
         self.df.columns = self.stock_codes
 
@@ -60,6 +63,9 @@ class TraderFlow(FlowSpec):
 
     @step
     def end(self):
+        """
+        Flow is done, print the shape of the dataframe
+        """
         print(f'Final shape: {self.df.shape}')
 
 if __name__ == '__main__':
