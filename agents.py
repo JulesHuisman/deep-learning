@@ -10,8 +10,8 @@ class DQN:
     def __init__(self,
                 state_size,
                 discount_rate=0.95,
-                exploration_rate=.2,
-                exploration_decay=.9,
+                exploration_rate=1.,
+                exploration_decay=.995,
                 action_size=3,
                 learning_rate=0.01,
                 is_eval=False):

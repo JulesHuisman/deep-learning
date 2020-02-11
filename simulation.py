@@ -28,7 +28,7 @@ if __name__ == '__main__':
     environment.run(episodes)
 
     # Evaluation
-    print('Evaluation ---------------------------------------------------')
+    print('\n Evaluation --------------------------------------------------- \n')
 
     # Set to evaluation mode
     trader.is_eval = True

@@ -85,9 +85,7 @@ class Environment:
             sell = np.sum(np.array(logs['actions']) == SELL)
             hold = np.sum(np.array(logs['actions']) == HOLD)
 
-            print(self.trader.model.predict(normalize(state)))
-
-            print(f'Episode: {episode} | Profit: {int(self.profits)} | Buys: {buys} | Sells: {sell} | Holds: {hold}')
+            print(f'Episode: {episode} | Profit: {int(self.profits)} | Buys: {buys} | Sells: {sell} | Holds: {hold} | Exploration: {self.trader.exploration_rate}')
 
             if not self.is_eval:
                 self.trader.replay(self.sample_batch_size)

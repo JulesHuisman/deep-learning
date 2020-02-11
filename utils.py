@@ -61,5 +61,3 @@ def show_profits(episode=0):
     fig = go.Figure(data=[go.Pie(labels=logs['action_cat'].value_counts().index,
                              values=logs['action_cat'].value_counts().values)])
     fig.show()
-    
-show_profits(196)
