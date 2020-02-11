@@ -10,27 +10,28 @@ class DQN:
     def __init__(self,
                 state_size,
                 discount_rate=0.95,
-                exploration_rate=1.,
+                exploration_rate=.2,
                 exploration_decay=.9,
                 action_size=3,
-                learning_rate=0.001):
+                learning_rate=0.01,
+                is_eval=False):
 
         self.discount_rate = discount_rate
         self.exploration_rate = exploration_rate
         self.exploration_decay = exploration_decay
         self.state_size = state_size
         self.action_size = action_size
-        self.memory = deque(maxlen=1000)
+        self.memory = deque(maxlen=5000)
         self.learning_rate = learning_rate
+        self.is_eval = is_eval
 
         self.model = self.build_model()
 
     def build_model(self):
         model = Sequential()
 
-        model.add(Dense(64, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(32, activation='relu'))
-        model.add(Dense(8, activation='relu'))
+        model.add(Dense(32, input_dim=self.state_size, activation='tanh'))
+        model.add(Dense(32, activation='tanh'))
         model.add(Dense(self.action_size, activation='linear'))
 
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
@@ -38,7 +39,7 @@ class DQN:
         return model
 
     def get_next_action(self, state):
-        if random.random() > self.exploration_rate:
+        if (random.random() > self.exploration_rate) or self.is_eval:
             return self.model_action(state)
         else:
             return self.random_action()
@@ -53,6 +54,9 @@ class DQN:
         self.memory.append((state, next_state, action, reward))
 
     def replay(self, sample_batch_size):
+        if self.is_eval:
+            return
+
         if len(self.memory) < sample_batch_size:
             return
 
@@ -70,9 +74,12 @@ class DQN:
             target_f = self.model.predict(state)
             target_f[0][action] = target
 
-            self.model.fit(state, target_f, epochs=1, verbose=0)
+            self.train(state, target_f)
 
         self.update_rate()
+
+    def train(self, x, y):
+        self.model.fit(x, y, epochs=1, verbose=0)
 
     def update_rate(self):
         # Keep lowering the exploration rate

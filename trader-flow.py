@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from metaflow import FlowSpec, step, IncludeFile, Parameter
-from utils import split_sequence
+from utils import split_sequence, normalize
 
 class TraderFlow(FlowSpec):
     """
@@ -61,35 +61,6 @@ class TraderFlow(FlowSpec):
         # Print all the stocks and their sizes
         for stock_code, stocks in self.stocks.items():
             print(stock_code, stocks.shape)
-
-        self.next(self.run_trader)
-
-    @step
-    def run_trader(self):
-        """
-        Create an environment and let the agent trade stocks
-        """
-        from agents import DQN
-        from environments import Environment
-        from time import sleep
-
-        for i in range(10):
-            print(i)
-            sleep(1)
-
-        # Initialize the deep Q learner
-        trader = DQN(state_size=self.window_size)
-
-        # Create the environment for the trader to trade in
-        environment = Environment(data=self.stocks['MSFT'], 
-                                  state_size=self.window_size, 
-                                  trader=trader)
-
-        # Start the simulation
-        environment.run(20)
-
-        # Store the logs
-        self.logs = environment.logs
 
         self.next(self.end)
 

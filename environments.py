@@ -1,5 +1,7 @@
 import numpy as np
 
+from utils import normalize
+
 BUY = 0
 SELL = 1
 HOLD = 2
@@ -9,7 +11,9 @@ class Environment:
                  data,
                  state_size,
                  trader,
-                 sample_batch_size=32):
+                 sample_batch_size=64,
+                 is_eval=False):
+
         self.logs = []
         self.profits = 0
         self.data = data
@@ -17,6 +21,7 @@ class Environment:
         self.state_size = state_size
         self.sample_batch_size = sample_batch_size
         self.trader = trader
+        self.is_eval = is_eval
 
     def reset(self):
         self.profits = 0
@@ -41,7 +46,7 @@ class Environment:
         # Return the profit as reward
         return profit
 
-    def run(self, episodes=100):
+    def run(self, episodes=1):
         """
         Start the training simulation
         """
@@ -55,7 +60,7 @@ class Environment:
             while not done:
                 index += 1
 
-                action = self.trader.get_next_action(state)
+                action = self.trader.get_next_action(normalize(state))
                 self.stock_price = state[0][-1]
 
                 if action == BUY:
@@ -67,7 +72,7 @@ class Environment:
 
                 next_state = self.data[index:index+1]
 
-                self.trader.remember(state, next_state, action, reward)
+                self.trader.remember(normalize(state), normalize(next_state), action, reward)
                 state = next_state
 
                 logs['profit'].append(self.profits)
@@ -80,11 +85,12 @@ class Environment:
             sell = np.sum(np.array(logs['actions']) == SELL)
             hold = np.sum(np.array(logs['actions']) == HOLD)
 
-            print('----------------------------------------------------------------')
-            print(f'Episode: {episode} | Profit: {int(self.profits)} | Buys: {buys} | Sell: {sell} | Hold: {hold}')
-            print('----------------------------------------------------------------')
+            print(self.trader.model.predict(normalize(state)))
 
-            self.trader.replay(self.sample_batch_size)
+            print(f'Episode: {episode} | Profit: {int(self.profits)} | Buys: {buys} | Sells: {sell} | Holds: {hold}')
+
+            if not self.is_eval:
+                self.trader.replay(self.sample_batch_size)
+
             self.reset()
-
             self.logs.append(logs)
