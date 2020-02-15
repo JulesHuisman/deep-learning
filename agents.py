@@ -6,63 +6,49 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 
-class DQN:
+class Trader:
     def __init__(self,
                 state_size,
-                discount_rate=0.95,
-                exploration_rate=1.,
-                exploration_decay=.995,
+                discount_rate=0.85,
                 action_size=3,
-                learning_rate=0.01,
-                is_eval=False):
+                learning_rate=0.0001,
+                sample_batch_size=64):
 
         self.discount_rate = discount_rate
-        self.exploration_rate = exploration_rate
-        self.exploration_decay = exploration_decay
         self.state_size = state_size
         self.action_size = action_size
-        self.memory = deque(maxlen=5000)
+        self.sample_batch_size = sample_batch_size
+        self.memory = deque(maxlen=sample_batch_size*action_size)
         self.learning_rate = learning_rate
-        self.is_eval = is_eval
 
         self.model = self.build_model()
 
     def build_model(self):
         model = Sequential()
 
-        model.add(Dense(32, input_dim=self.state_size, activation='tanh'))
-        model.add(Dense(32, activation='tanh'))
+        model.add(Dense(100, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(50, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
 
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
         return model
 
-    def get_next_action(self, state):
-        if (random.random() > self.exploration_rate) or self.is_eval:
-            return self.model_action(state)
-        else:
-            return self.random_action()
-
-    def model_action(self, state):
+    def get_action(self, state):
+        return random.randrange(self.action_size)
         return np.argmax(self.model.predict(state)[0])
 
-    def random_action(self):
-        return random.randrange(self.action_size)
+    def remember(self, state, action, reward, next_state):
+        self.memory.append((state, action, reward, next_state))
 
-    def remember(self, state, next_state, action, reward):
-        self.memory.append((state, next_state, action, reward))
-
-    def replay(self, sample_batch_size):
-        if self.is_eval:
+    def replay(self):
+        # Don't replay if the memory is not filled yet
+        if len(self.memory) < self.memory.maxlen:
             return
 
-        if len(self.memory) < sample_batch_size:
-            return
+        # sample_batch = random.sample(self.memory, self.sample_batch_size)
 
-        sample_batch = random.sample(self.memory, sample_batch_size)
-
-        for (state, next_state, action, reward) in sample_batch:
+        for (state, action, reward, next_state) in self.memory:
             # If there is no next state
             if len(next_state) == 0:
                 continue
@@ -74,13 +60,4 @@ class DQN:
             target_f = self.model.predict(state)
             target_f[0][action] = target
 
-            self.train(state, target_f)
-
-        self.update_rate()
-
-    def train(self, x, y):
-        self.model.fit(x, y, epochs=1, verbose=0)
-
-    def update_rate(self):
-        # Keep lowering the exploration rate
-        self.exploration_rate *= self.exploration_decay
+            self.model.fit(state, target_f, epochs=1, verbose=0)

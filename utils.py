@@ -11,15 +11,12 @@ def split_sequence(sequence, n_steps):
 
     return np.array(X)
 
-def normalize(data):
-    return (data - 132) / 235
-
 def show_profits(episode=0):
     logs = env.logs[episode]
 
     actions = np.array(logs['actions'])
     profits = np.array(logs['profit'])
-    indices = np.arange(0,len(actions))
+    indices = np.arange(0, len(actions))
     stocks  = df.values[WINDOW_SIZE-1:]
 
     logs = pd.DataFrame({
