@@ -5,6 +5,7 @@ from collections import deque
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
+from keras import backend as K
 
 class Trader:
     def __init__(self,
@@ -33,6 +34,14 @@ class Trader:
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
         return model
+
+    def reset_model(self):
+        def reset_weights(model):
+            session = K.get_session()
+            
+            for layer in self.model.layers: 
+                if hasattr(layer, 'kernel_initializer'):
+                    layer.kernel.initializer.run(session=session)
 
     def get_action(self, state):
         # return random.randrange(self.action_size)

@@ -18,24 +18,25 @@ if __name__ == '__main__':
     # Initialize the deep Q learner
     trader = Trader(state_size=window_size, 
                     discount_rate=.99,
-                    sample_batch_size=32)
+                    sample_batch_size=64)
 
     # Create the environment for the trader to trade in
-    environment = Environment(data=stocks['^GSPC']['train'], 
+    environment = Environment(data=stocks['AAPL']['train'], 
                               state_size=window_size, 
                               trader=trader,
                               log_file='logs',
-                              T=10)
+                              reset_trader=False,
+                              T=5)
 
     # Start the simulation
     environment.run(episodes)
 
     # # Create the environment for the trader to trade in
-    # environment = Environment(data=stocks['^GSPC']['test'], 
+    # environment = Environment(data=stocks['^HSI']['test'], 
     #                           state_size=window_size, 
     #                           trader=trader,
     #                           log_file='logs-test',
-    #                           T=10)
+    #                           T=5)
 
     # # Start the simulation
     # environment.run(1)
