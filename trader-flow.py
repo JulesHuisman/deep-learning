@@ -12,7 +12,7 @@ class TraderFlow(FlowSpec):
     Metaflow to parse and train the data for the deep q learner
     """
 
-    stock_codes = ['^GSPC', '^HSI']
+    stock_codes = ['^GSPC', 'AAPL']
 
     window_size = Parameter('window',
                     help='The size of the stock windows',
@@ -76,14 +76,18 @@ class TraderFlow(FlowSpec):
         """
         # Create a dictionary for all the stocks
         self.stocks = {input.stock_code: {
-            'train': input.train_seq,
-            'train_raw': input.train_price, 
-            'test': input.test_seq,
-            'test_raw': input.test_price } for input in inputs}
+            'train': {
+                'seq': input.train_seq,
+                'price': input.train_price
+            },
+            'test': {
+                'seq': input.test_seq,
+                'price': input.test_price
+            }} for input in inputs}
 
         # Print all the stocks and their sizes
         for stock_code, stocks in self.stocks.items():
-            print(stock_code, 'train', stocks['train'].shape, 'test', stocks['test'].shape)
+            print(stock_code, 'train', stocks['train']['seq'].shape, 'test', stocks['test']['seq'].shape)
 
         self.next(self.end)
 

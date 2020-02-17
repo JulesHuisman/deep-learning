@@ -9,9 +9,9 @@ from keras.optimizers import Adam
 class Trader:
     def __init__(self,
                 state_size,
-                discount_rate=0.85,
+                discount_rate=0.99,
                 action_size=3,
-                learning_rate=0.0001,
+                learning_rate=0.00025,
                 sample_batch_size=64):
 
         self.discount_rate = discount_rate
@@ -35,18 +35,19 @@ class Trader:
         return model
 
     def get_action(self, state):
-        return random.randrange(self.action_size)
+        # return random.randrange(self.action_size)
         return np.argmax(self.model.predict(state)[0])
 
     def remember(self, state, action, reward, next_state):
         self.memory.append((state, action, reward, next_state))
 
+    def memory_filled(self):
+        return len(self.memory) >= self.memory.maxlen
+
     def replay(self):
         # Don't replay if the memory is not filled yet
-        if len(self.memory) < self.memory.maxlen:
+        if not self.memory_filled():
             return
-
-        # sample_batch = random.sample(self.memory, self.sample_batch_size)
 
         for (state, action, reward, next_state) in self.memory:
             # If there is no next state
