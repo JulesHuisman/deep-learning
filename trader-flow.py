@@ -47,8 +47,10 @@ class TraderFlow(FlowSpec):
             period='1d', start='2005-1-1', end='2015-12-31')
 
         # Get the price difference
-        train_diff = train['Close'].diff()[1:].values
-        test_diff = test['Close'].diff()[1:].values
+        # train_diff = train['Close'].diff()[1:].values
+        # test_diff = test['Close'].diff()[1:].values
+        train_diff = np.roll(train['Close'].values, 1)[1:]
+        test_diff = np.roll(test['Close'].values, 1)[1:]
 
         # Normalize
         scaler = StandardScaler()
