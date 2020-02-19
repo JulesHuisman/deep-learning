@@ -12,7 +12,7 @@ class Trader:
                 state_size,
                 discount_rate=0.99,
                 action_size=3,
-                learning_rate=0.001,
+                learning_rate=0.00025,
                 sample_batch_size=64):
 
         self.discount_rate = discount_rate
@@ -28,6 +28,7 @@ class Trader:
         model = Sequential()
 
         model.add(Dense(128, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(64, activation='relu'))
         model.add(Dense(64, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
 
