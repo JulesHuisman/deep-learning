@@ -44,7 +44,7 @@ class Trader:
                     layer.kernel.initializer.run(session=session)
 
     def get_action(self, state):
-        return random.randrange(self.action_size)
+        # return random.randrange(self.action_size)
         return np.argmax(self.model.predict(state)[0])
 
     def remember(self, state, action, reward, next_state):

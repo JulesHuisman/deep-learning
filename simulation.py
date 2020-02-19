@@ -13,7 +13,7 @@ train_percentage = float(args.train)
 
 if __name__ == '__main__':
     from agent import Trader
-    from environment import Environment, Stock
+    from environment import Environment, Stock, rewards
 
     # Initialize the deep Q learner
     trader = Trader(state_size=window_size,
@@ -29,7 +29,8 @@ if __name__ == '__main__':
                               trader=trader,
                               log_file='logs',
                               reset_trader=True,
-                              T=5)
+                              T=5,
+                              reward_type=rewards.LONGTERM)
 
     # Start the simulation
     environment.run(episodes)

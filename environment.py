@@ -6,9 +6,15 @@ from utils import split_sequence
 
 np.set_printoptions(suppress=True)
 
-SHORT = -1
-HOLD = 0
-LONG = 1
+
+class actions:
+    SHORT = -1
+    HOLD = 0
+    LONG = 1
+
+class rewards:
+    SHORTTERM = 0
+    LONGTERM = 1
 
 class bcolors:
     HEADER = '\033[95m'
@@ -17,8 +23,6 @@ class bcolors:
     WARNING = '\033[93m'
     FAIL = '\033[91m'
     ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 class Environment:
     def __init__(self,
@@ -30,7 +34,8 @@ class Environment:
                  price_look_back=100,
                  log_file='logs',
                  T=10,
-                 reset_trader=False):
+                 reset_trader=False,
+                 reward_type=rewards.SHORTTERM):
 
         self.train_percentage = train_percentage
         self.window_size      = window_size
@@ -40,19 +45,21 @@ class Environment:
         self.log_file         = log_file
         self.T                = T
         self.reset_trader     = reset_trader
+        self.reward_type      = reward_type
 
         self.data_seq         = stock.sequence
         self.data_price       = stock.prices
         self.train_size       = int(self.train_percentage * len(self.data_seq))
-        print(self.train_size)
+        self.start_stock      = self.data_price[self.train_size]
+        print(self.start_stock)
 
     def reset(self):
         """
         Reset the environment
         """
         self.position  = 0
-        self.portfolio = 0
-        self.baseline  = 0
+        self.portfolio = self.start_stock
+        self.baseline  = self.start_stock
 
         # Clear the memory of the trader
         self.trader.memory.clear()
@@ -65,7 +72,20 @@ class Environment:
         """
         Calculate the reward for the Q function
         """
-        return (1 + (action-1) * ((self.stock_price - self.stock_price_1) / self.stock_price_1)) * (self.stock_price_1 / self.stock_price_n)
+        action -= 1
+
+        if self.reward_type == rewards.SHORTTERM:
+            if action == actions.HOLD:
+                return 0
+
+            portfolio = self.portfolio + (action * (self.stock_price - self.stock_price_1))
+            reward = (portfolio / self.portfolio)
+            print(reward, np.log(reward) * 100)
+
+            return np.log(reward) * 100
+
+        elif self.reward_type == rewards.LONGTERM:
+            return (1 + action * ((self.stock_price - self.stock_price_1) / self.stock_price_1)) * (self.stock_price_1 / self.stock_price_n)
 
     def act(self, action):
         """
@@ -73,11 +93,11 @@ class Environment:
         """
 
         # Print the current position the trader is holding
-        if self.position == SHORT:
+        if self.position == actions.SHORT:
             print('Shorting')
-        elif self.position == HOLD:
+        elif self.position == actions.HOLD:
             print('Holding')
-        elif self.position == LONG:
+        elif self.position == actions.LONG:
             print('Longing')
 
         # Calculate new portfolio value
@@ -114,8 +134,8 @@ class Environment:
             seq_len        = len(self.data_seq)
             state          = self.data_seq[0:1]
             done           = False
-            portfolio_logs = [0]
-            baseline_logs  = [0]
+            portfolio_logs = []
+            baseline_logs  = []
             hold = 0
 
             # Reset the state before each run
@@ -126,8 +146,7 @@ class Environment:
 
                 # Experience replay every T iterations
                 if (index % self.T) == 0:
-                    pass
-                    # self.trader.replay()
+                    self.trader.replay()
 
                 # Get the three flavor of stock prices
                 self.calculate_stock_prices(index)
@@ -138,7 +157,6 @@ class Environment:
                 # Store the states and reward in the memory of the trader
                 self.store_actions(state, next_state)
                 
-
                 if self.is_training(index):
                     print('Training')
                 else:
@@ -148,6 +166,7 @@ class Environment:
                     # Get the action the trader would take
                     self.act(action)
 
+                    # Baseline is longing the stock
                     self.baseline += self.stock_price - self.stock_price_1
 
                     # Store logs
