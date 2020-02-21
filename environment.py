@@ -3,9 +3,9 @@ import pickle
 import yfinance as yf
 from sklearn.preprocessing import StandardScaler
 from utils import split_sequence
+from tqdm import tqdm, trange
 
 np.set_printoptions(suppress=True)
-
 
 class actions:
     SHORT = -1
@@ -30,10 +30,10 @@ class Environment:
                  window_size,
                  trader,
                  train_percentage=.3,
-                 normalize_stocks=True,
                  log_file='logs',
                  T=10,
-                 reset_trader=False):
+                 reset_trader=True,
+                 pbarpos=0):
 
         self.stock            = stock
         self.train_percentage = train_percentage
@@ -43,6 +43,7 @@ class Environment:
         self.log_file         = log_file
         self.T                = T
         self.reset_trader     = reset_trader
+        self.pbarpos          = pbarpos
 
         self.train_size       = int(self.train_percentage * len(self.stock.stock_prices))
         self.start_stock      = self.stock.stock_prices[self.train_size]
@@ -79,12 +80,12 @@ class Environment:
         """
 
         # Print the previous position the trader is holding
-        if self.position == actions.SHORT:
-            print('Shorting')
-        elif self.position == actions.HOLD:
-            print('Holding')
-        elif self.position == actions.LONG:
-            print('Longing')
+        # if self.position == actions.SHORT:
+        #     print('Shorting')
+        # elif self.position == actions.HOLD:
+        #     print('Holding')
+        # elif self.position == actions.LONG:
+        #     print('Longing')
 
         current_stock_price = self.stock.stock_prices[self.index]
         prev_stock_price    = self.stock.stock_prices_1[self.index]
@@ -122,58 +123,65 @@ class Environment:
             # Reset the state before each run
             self.reset()
 
-            for index in range(seq_len):
-                # Set the index of the iteration
-                self.index = index
+            with tqdm(range(seq_len), position=self.pbarpos) as t:
+                for index in t:
+                    # Set the index of the iteration
+                    self.index = index
 
-                # Stock prices
-                current_stock_price = self.stock.stock_prices[self.index]
-                prev_stock_price    = self.stock.stock_prices_1[self.index]
+                    # Stock prices
+                    current_stock_price = self.stock.stock_prices[self.index]
+                    prev_stock_price    = self.stock.stock_prices_1[self.index]
 
-                print(f'--------------------- {episode} / {episodes} --- {self.index} / {seq_len}')
+                    # print(f'--------------------- {episode} / {episodes} --- {self.index} / {seq_len}')
 
-                # Experience replay every T iterations
-                if (index % self.T) == 0:
-                    self.trader.replay()
+                    # Experience replay every T iterations
+                    if (index % self.T) == 0:
+                        self.trader.replay()
 
-                # Get the next state to store in trader memory
-                next_state = self.stock.stock_seq[index+1:index+2]
+                    # Get the next state to store in trader memory
+                    next_state = self.stock.stock_seq[index+1:index+2]
 
-                # Store the states and reward in the memory of the trader
-                self.store_actions(state, next_state)
-                
-                if self.is_training():
-                    print('Training')
-                else:
-                    # Get the action from the model
-                    action = self.trader.get_action(state)
+                    # Store the states and reward in the memory of the trader
+                    self.store_actions(state, next_state)
+                    
+                    if not self.is_training():
+                        # Get the action from the model
+                        action = self.trader.get_action(state)
 
-                    # Get the action the trader would take
-                    self.act(action)
+                        # Get the action the trader would take
+                        self.act(action)
 
-                    # Baseline is longing the stock
-                    self.baseline += current_stock_price - prev_stock_price
+                        # Baseline is longing the stock
+                        self.baseline += current_stock_price - prev_stock_price
 
-                    # Store logs
-                    portfolio_logs.append(self.portfolio / self.start_stock)
-                    baseline_logs.append(self.baseline / self.start_stock)
+                        # Store logs
+                        portfolio_logs.append(self.portfolio / self.start_stock)
+                        baseline_logs.append(self.baseline / self.start_stock)
 
-                print(f'Portfolio {bcolors.OKBLUE}${"{0:.2f}".format(self.portfolio)}{bcolors.ENDC}')
-                print(f'Stock price {bcolors.OKBLUE}${"{0:.2f}".format(current_stock_price)}{bcolors.ENDC}')
-                print(f'Delta {bcolors.FAIL if (self.portfolio - self.baseline < 0) else bcolors.OKGREEN}${"{0:.2f}".format(self.portfolio - self.baseline)}{bcolors.ENDC}')
+                        # Progressbar ratio
+                        t.set_postfix(ratio=f'{(self.portfolio / self.baseline):.2f}')
 
-                state = next_state
+                    # print(f'Portfolio {bcolors.OKBLUE}${"{0:.2f}".format(self.portfolio)}{bcolors.ENDC}')
+                    # print(f'Stock price {bcolors.OKBLUE}${"{0:.2f}".format(current_stock_price)}{bcolors.ENDC}')
+                    # print(f'Delta {bcolors.FAIL if (self.portfolio - self.baseline < 0) else bcolors.OKGREEN}${"{0:.2f}".format(self.portfolio - self.baseline)}{bcolors.ENDC}')
+
+                    state = next_state
 
             # Store logs
             self.logs['portfolio'].append(np.array(portfolio_logs))
             self.logs['baseline'] = baseline_logs
             self.store_logs()
 
-        return np.average(np.array([p[-1] for p in self.logs['portfolio']]))
+        portfolio = np.average(np.array([p[-1] for p in self.logs['portfolio']]))
+        baseline = self.logs['baseline'][-1]
+        ratio = max(portfolio, 0) / baseline
+
+        return portfolio, baseline, ratio
 
     def store_logs(self):
-        with open(f'data/{self.log_file}.pkl', 'wb') as handle:
-            pickle.dump(self.logs, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        if self.log_file:
+            with open(f'data/{self.log_file}.pkl', 'wb') as handle:
+                pickle.dump(self.logs, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 class Stock:
     def __init__(self, 

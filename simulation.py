@@ -2,8 +2,8 @@ import argparse
 import pickle
 
 parser = argparse.ArgumentParser(description='Run the deep reinforcement network')
-parser.add_argument("--window", default=10, help="Number of episodes to simulate")
-parser.add_argument("--episodes", default=10, help="Number of episodes to simulate")
+parser.add_argument("--window", default=200, help="Number of episodes to simulate")
+parser.add_argument("--episodes", default=1, help="Number of episodes to simulate")
 parser.add_argument("--train", default=.5, help="Train for what percentage of the data")
 args = parser.parse_args()
 
@@ -17,6 +17,9 @@ if __name__ == '__main__':
 
     # Initialize the deep Q learner
     trader = Trader(state_size=window_size,
+                    neurons=128,
+                    neuron_shrink_ratio=.8,
+                    hidden_layers=3,
                     sample_batch_size=64)
 
     # Get the stock data
@@ -38,5 +41,4 @@ if __name__ == '__main__':
                               T=5)
 
     # Start the simulation
-    score = environment.run(episodes)
-    print(score)
+    portfolio, baseline, ratio = environment.run(episodes)
