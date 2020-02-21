@@ -1,4 +1,5 @@
 import random
+import math
 import numpy as np
 
 import os
@@ -42,13 +43,11 @@ class Trader:
 
         for hidden_layer in range(self.hidden_layers - 1):
             neurons *= self.neuron_shrink_ratio
-            model.add(Dense(int(neurons), activation='relu'))
+            model.add(Dense(math.ceil(neurons), activation='relu'))
 
         model.add(Dense(self.action_size, activation='linear'))
 
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
-
-        # print(model.summary())
 
         return model
 

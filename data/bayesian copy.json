@@ -1,0 +1,306 @@
+{"target": 0.5358501464702993, "params": {"T": 6.685405354912452, "discount_rate": 0.8369696745977732, "hidden_layers": 1.0902202497511757, "learning_rate": 0.0025679005109577892, "look_back_ratio": 0.5907029285663488, "neuron_shrink_ratio": 0.6804361590085748, "neurons": 120.92008964383074, "price_difference": 0.33690447498053677, "sample_batch_size": 40.11897485914154, "window_size": 275.5069612065997}, "datetime": {"datetime": "2020-02-21 15:45:00", "elapsed": 0.0, "delta": 0.0}}
+{"target": 0.5684087250563773, "params": {"T": 4.09461118126759, "discount_rate": 0.7986894633007096, "hidden_layers": 2.365359035021738, "learning_rate": 0.005665362391772535, "look_back_ratio": 0.7569219444748151, "neuron_shrink_ratio": 0.6061791149394566, "neurons": 44.938818268421365, "price_difference": 0.6449260224631129, "sample_batch_size": 37.85734739655473, "window_size": 170.44080923087222}, "datetime": {"datetime": "2020-02-21 15:50:32", "elapsed": 332.333093, "delta": 332.333093}}
+{"target": 0.36687261854311254, "params": {"T": 4.207315650622677, "discount_rate": 0.8222620186644602, "hidden_layers": 1.0672428630977828, "learning_rate": 0.002686173617460282, "look_back_ratio": 0.7456567391061923, "neuron_shrink_ratio": 0.5980878093061242, "neurons": 111.11275326654565, "price_difference": 0.09436782848362402, "sample_batch_size": 27.672982822278836, "window_size": 184.89980166288206}, "datetime": {"datetime": "2020-02-21 15:54:34", "elapsed": 574.236309, "delta": 241.903216}}
+{"target": 0.5306930863517535, "params": {"T": 1.0, "discount_rate": 0.5, "hidden_layers": 1.845630479239371, "learning_rate": 0.01, "look_back_ratio": 0.1, "neuron_shrink_ratio": 0.3, "neurons": 8.0, "price_difference": 0.0, "sample_batch_size": 8.0, "window_size": 365.0}, "datetime": {"datetime": "2020-02-21 15:58:43", "elapsed": 823.134284, "delta": 248.897975}}
+{"target": 0.6815163979574447, "params": {"T": 10.0, "discount_rate": 0.5, "hidden_layers": 3.0, "learning_rate": 0.01, "look_back_ratio": 0.1, "neuron_shrink_ratio": 1.0, "neurons": 8.0, "price_difference": 1.0, "sample_batch_size": 64.0, "window_size": 31.0}, "datetime": {"datetime": "2020-02-21 16:02:54", "elapsed": 1074.024985, "delta": 250.890701}}
+{"target": 0.5549894510757483, "params": {"T": 10.0, "discount_rate": 0.99, "hidden_layers": 1.0, "learning_rate": 0.0001, "look_back_ratio": 0.9, "neuron_shrink_ratio": 1.0, "neurons": 8.0, "price_difference": 1.0813572259849025e-05, "sample_batch_size": 64.0, "window_size": 365.0}, "datetime": {"datetime": "2020-02-21 16:05:34", "elapsed": 1234.048118, "delta": 160.023133}}
+{
+    "target": 0.5572897522465742,
+    "params": {
+        "T": 4.386392253969506,
+        "discount_rate": 0.6863353804524261,
+        "hidden_layers": 2.590274947878302,
+        "learning_rate": 0.008893854934189135,
+        "look_back_ratio": 0.8822462470536384,
+        "neuron_shrink_ratio": 0.5102126054714521,
+        "neurons": 104.17901342095121,
+        "price_difference": 0.2811151534951001,
+        "sample_batch_size": 62.02829963631455,
+        "window_size": 249.87415314345645
+    },
+    "datetime": {
+        "datetime": "2020-02-21 16:22:21",
+        "elapsed": 0.0,
+        "delta": 0.0
+    }
+}
+{
+    "target": 0.6891108478347833,
+    "params": {
+        "T": 8.284212261384093,
+        "discount_rate": 0.9793164453671224,
+        "hidden_layers": 2.4816661080019182,
+        "learning_rate": 0.0022568986169079863,
+        "look_back_ratio": 0.2666694294921158,
+        "neuron_shrink_ratio": 0.6307112142272758,
+        "neurons": 114.26542858727204,
+        "price_difference": 0.551640313552442,
+        "sample_batch_size": 62.74973125011925,
+        "window_size": 245.6866095140905
+    },
+    "datetime": {
+        "datetime": "2020-02-21 16:26:53",
+        "elapsed": 272.297155,
+        "delta": 272.297155
+    }
+}
+{
+    "target": 0.5974924159905743,
+    "params": {
+        "T": 8.983357024103702,
+        "discount_rate": 0.930495483460974,
+        "hidden_layers": 1.204250553899993,
+        "learning_rate": 0.002782680507188322,
+        "look_back_ratio": 0.6786235408590161,
+        "neuron_shrink_ratio": 0.5833378006023635,
+        "neurons": 22.610125681047027,
+        "price_difference": 0.25192030506064067,
+        "sample_batch_size": 55.959558130617,
+        "window_size": 33.09317500919822
+    },
+    "datetime": {
+        "datetime": "2020-02-21 16:30:26",
+        "elapsed": 484.989841,
+        "delta": 212.692686
+    }
+}
+{
+    "target": 0.7271063056912591,
+    "params": {
+        "T": 9.97091465754376,
+        "discount_rate": 0.8871393310923834,
+        "hidden_layers": 1.1646865436403997,
+        "learning_rate": 0.009201278062602973,
+        "look_back_ratio": 0.45280609811722405,
+        "neuron_shrink_ratio": 0.6576537564128419,
+        "neurons": 80.93534728479487,
+        "price_difference": 0.7096532301088754,
+        "sample_batch_size": 51.51601455594144,
+        "window_size": 277.6208367113369
+    },
+    "datetime": {
+        "datetime": "2020-02-21 16:33:04",
+        "elapsed": 643.456217,
+        "delta": 158.466376
+    }
+}
+{
+    "target": 0.5436709907920695,
+    "params": {
+        "T": 9.667193599773599,
+        "discount_rate": 0.8308669549768939,
+        "hidden_layers": 1.242730135069004,
+        "learning_rate": 0.004134802424920034,
+        "look_back_ratio": 0.8559551964374208,
+        "neuron_shrink_ratio": 0.5647089255929258,
+        "neurons": 57.100589866704524,
+        "price_difference": 0.30569735649346197,
+        "sample_batch_size": 22.13917051883657,
+        "window_size": 141.55592381580186
+    },
+    "datetime": {
+        "datetime": "2020-02-21 16:34:25",
+        "elapsed": 723.925226,
+        "delta": 80.469009
+    }
+}
+{
+    "target": 0.6451615328594327,
+    "params": {
+        "T": 1.6317278269958593,
+        "discount_rate": 0.5804265351171274,
+        "hidden_layers": 1.4673963867447475,
+        "learning_rate": 0.004628896415600628,
+        "look_back_ratio": 0.23132213201346652,
+        "neuron_shrink_ratio": 0.6944064940950971,
+        "neurons": 57.66721172657246,
+        "price_difference": 0.7840399993166667,
+        "sample_batch_size": 52.331312795124134,
+        "window_size": 148.28938290916022
+    },
+    "datetime": {
+        "datetime": "2020-02-21 16:48:48",
+        "elapsed": 1587.80354,
+        "delta": 863.878314
+    }
+}
+{
+    "target": 0.6961143009364291,
+    "params": {
+        "T": 10.0,
+        "discount_rate": 0.99,
+        "hidden_layers": 1.0,
+        "learning_rate": 0.0001,
+        "look_back_ratio": 0.1,
+        "neuron_shrink_ratio": 1.0,
+        "neurons": 128.0,
+        "price_difference": 1.0,
+        "sample_batch_size": 64.0,
+        "window_size": 365.0
+    },
+    "datetime": {
+        "datetime": "2020-02-21 16:52:11",
+        "elapsed": 1790.73015,
+        "delta": 202.92661
+    }
+}
+{
+    "target": 0.7324087522172662,
+    "params": {
+        "T": 10.0,
+        "discount_rate": 0.5,
+        "hidden_layers": 3.0,
+        "learning_rate": 0.01,
+        "look_back_ratio": 0.1,
+        "neuron_shrink_ratio": 1.0,
+        "neurons": 128.0,
+        "price_difference": 1.0,
+        "sample_batch_size": 64.0,
+        "window_size": 31.0
+    },
+    "datetime": {
+        "datetime": "2020-02-21 16:57:47",
+        "elapsed": 2125.97803,
+        "delta": 335.24788
+    }
+}
+{
+    "target": 0.8636598844837433,
+    "params": {
+        "T": 10.0,
+        "discount_rate": 0.99,
+        "hidden_layers": 1.0,
+        "learning_rate": 0.0001,
+        "look_back_ratio": 0.1,
+        "neuron_shrink_ratio": 1.0,
+        "neurons": 8.0,
+        "price_difference": 1.0,
+        "sample_batch_size": 64.0,
+        "window_size": 262.5639897171354
+    },
+    "datetime": {
+        "datetime": "2020-02-21 17:01:09",
+        "elapsed": 2328.279895,
+        "delta": 202.301865
+    }
+}
+{
+    "target": 0.5414087047197539,
+    "params": {
+        "T": 10.0,
+        "discount_rate": 0.99,
+        "hidden_layers": 1.0,
+        "learning_rate": 0.0001,
+        "look_back_ratio": 0.1,
+        "neuron_shrink_ratio": 1.0,
+        "neurons": 8.0,
+        "price_difference": 1.0,
+        "sample_batch_size": 64.0,
+        "window_size": 121.58145934629546
+    },
+    "datetime": {
+        "datetime": "2020-02-21 17:05:02",
+        "elapsed": 2561.759562,
+        "delta": 233.479667
+    }
+}
+{
+    "target": 0.7518404477247914,
+    "params": {
+        "T": 10.0,
+        "discount_rate": 0.99,
+        "hidden_layers": 3.0,
+        "learning_rate": 0.0001,
+        "look_back_ratio": 0.1,
+        "neuron_shrink_ratio": 1.0,
+        "neurons": 128.0,
+        "price_difference": 1.0,
+        "sample_batch_size": 64.0,
+        "window_size": 116.1083225846253
+    },
+    "datetime": {
+        "datetime": "2020-02-21 17:10:17",
+        "elapsed": 2875.940698,
+        "delta": 314.181136
+    }
+}
+{
+    "target": 0.8916123737960238,
+    "params": {
+        "T": 10.0,
+        "discount_rate": 0.99,
+        "hidden_layers": 3.0,
+        "learning_rate": 0.0001,
+        "look_back_ratio": 0.1,
+        "neuron_shrink_ratio": 1.0,
+        "neurons": 8.0,
+        "price_difference": 1.0,
+        "sample_batch_size": 8.0,
+        "window_size": 275.8226435418387
+    },
+    "datetime": {
+        "datetime": "2020-02-21 17:10:53",
+        "elapsed": 2911.972516,
+        "delta": 36.031818
+    }
+}
+{
+    "target": 0.6470672235397996,
+    "params": {
+        "T": 10.0,
+        "discount_rate": 0.99,
+        "hidden_layers": 3.0,
+        "learning_rate": 0.01,
+        "look_back_ratio": 0.1,
+        "neuron_shrink_ratio": 1.0,
+        "neurons": 128.0,
+        "price_difference": 1.0,
+        "sample_batch_size": 8.0,
+        "window_size": 31.0
+    },
+    "datetime": {
+        "datetime": "2020-02-21 17:11:48",
+        "elapsed": 2967.905872,
+        "delta": 55.933356
+    }
+}
+{
+    "target": 0.6254879210774124,
+    "params": {
+        "T": 10.0,
+        "discount_rate": 0.99,
+        "hidden_layers": 3.0,
+        "learning_rate": 0.0001,
+        "look_back_ratio": 0.1,
+        "neuron_shrink_ratio": 1.0,
+        "neurons": 128.0,
+        "price_difference": 1.0,
+        "sample_batch_size": 8.0,
+        "window_size": 365.0
+    },
+    "datetime": {
+        "datetime": "2020-02-21 17:12:33",
+        "elapsed": 3012.373101,
+        "delta": 44.467229
+    }
+}
+{
+    "target": 0.742261821713007,
+    "params": {
+        "T": 1.0,
+        "discount_rate": 0.5,
+        "hidden_layers": 3.0,
+        "learning_rate": 0.01,
+        "look_back_ratio": 0.1,
+        "neuron_shrink_ratio": 1.0,
+        "neurons": 8.0,
+        "price_difference": 1.0,
+        "sample_batch_size": 8.0,
+        "window_size": 31.0
+    },
+    "datetime": {
+        "datetime": "2020-02-21 17:18:04",
+        "elapsed": 3343.822163,
+        "delta": 331.449062
+    }
+}

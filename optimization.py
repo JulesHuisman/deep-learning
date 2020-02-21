@@ -11,19 +11,25 @@ from multiprocessing import Pool, Process
 from bayes_opt import BayesianOptimization
 from bayes_opt.logger import JSONLogger
 from bayes_opt.event import Events
+from bayes_opt.util import load_logs
 
 logger = JSONLogger(path="data/bayesian.json")
 
 def simulation(**hyperparams):
     tickers = ['^GSPC', '^HSI', 'AAPL', 'MSFT', 'AMD', 'TSLA']
 
-    pool = Pool(6)
+    for param, value in hyperparams.items():
+        print(param, f'{value:.2f}')
+
+    pool = Pool(8)
     ratios = pool.starmap(run, zip(tickers, itertools.repeat(hyperparams), range(len(tickers)))) 
     pool.close() 
     pool.join()
 
     for ticker, ratio in zip(tickers, ratios):
         print(f'{ticker} - {ratio:.2f}')
+
+    print(np.mean(np.array(ratios)))
 
     return np.mean(np.array(ratios))
 
@@ -33,20 +39,19 @@ def run(ticker, hyperparams, position):
     hidden_layers       = hyperparams['hidden_layers']
     learning_rate       = hyperparams['learning_rate']
     sample_batch_size   = hyperparams['sample_batch_size']
-    train_size          = hyperparams['train_size']
     T                   = hyperparams['T']
     window_size         = hyperparams['window_size']
     price_difference    = hyperparams['price_difference']
     look_back_ratio     = hyperparams['look_back_ratio']
     discount_rate       = hyperparams['discount_rate']
 
-    neurons           = int(neurons)
-    hidden_layers     = int(hidden_layers)
-    sample_batch_size = int(sample_batch_size)
-    T                 = int(T)
-    window_size       = int(window_size)
-    price_look_back   = int(look_back_ratio * window_size)
-    price_difference  = round(price_difference)
+    neurons           = int(round(neurons))
+    hidden_layers     = int(round(hidden_layers))
+    sample_batch_size = int(round(sample_batch_size))
+    T                 = int(round(T))
+    window_size       = int(round(window_size))
+    price_look_back   = int(round(look_back_ratio * window_size))
+    price_difference  = int(round(price_difference))
 
     # Initialize the deep Q learner
     trader = Trader(state_size=window_size,
@@ -60,17 +65,17 @@ def run(ticker, hyperparams, position):
     # Get the stock data
     stock = Stock(ticker=ticker, 
                   window_size=window_size, 
-                  train_size=train_size, 
+                  train_size=.5, 
                   normalize=True, 
                   diff=(price_difference == 1),
-                  start_date='2012-1-1', 
+                  start_date='2015-1-1', 
                   end_date='2020-1-1',
                   price_look_back=price_look_back)
 
     # Create the environment for the trader to trade in
     environment = Environment(stock=stock, 
                               window_size=window_size, 
-                              train_percentage=train_size,
+                              train_percentage=.5,
                               trader=trader,
                               log_file=None,
                               reset_trader=True,
@@ -94,16 +99,14 @@ if __name__ == '__main__':
         'learning_rate': (0.0001, 0.01),
         # The size of the memory of the agent (for how long to remember previous trades)
         'sample_batch_size': (8, 64),
-        # For how long to train before trading starts
-        'train_size': (.1,.5),
         # Memory replay interval
         'T': (1,10),
         # Size of stock window
-        'window_size': (200, 200),
+        'window_size': (31, 365),
         # Wether to look at absolute or relative prices e.g. (1,10,5) or (1,9,-5)
         'price_difference': (0, 1),
         # At which percentage of the window size to look at the historic price for reward function
-        'look_back_ratio': (.5, .5),
+        'look_back_ratio': (.1, .9),
         # Discount rate of the Q function
         'discount_rate': (.5, .99)
     }
@@ -113,11 +116,13 @@ if __name__ == '__main__':
         pbounds=parameters
     )
 
-    # optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
+    load_logs(optimizer, logs=['data/bayesian copy.json'])
+
+    optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
 
     optimizer.maximize(
-        init_points=3,
-        n_iter=3,
+        init_points=5,
+        n_iter=10,
     )
 
     print(optimizer.max)

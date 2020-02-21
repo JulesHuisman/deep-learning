@@ -123,7 +123,7 @@ class Environment:
             # Reset the state before each run
             self.reset()
 
-            with tqdm(range(seq_len), position=self.pbarpos) as t:
+            with tqdm(range(seq_len), position=self.pbarpos, mininterval=2) as t:
                 for index in t:
                     # Set the index of the iteration
                     self.index = index
