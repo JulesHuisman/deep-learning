@@ -1,6 +1,12 @@
 import numpy as np
 
+from keras.models import model_from_config, Sequential, Model
+
 def split_sequence(sequence, n_steps):
+    """
+    Create timeseries from array
+    """
+
     X = []
     for i in range(len(sequence)):
         end_ix = i + n_steps
@@ -11,50 +17,17 @@ def split_sequence(sequence, n_steps):
 
     return np.array(X)
 
-def show_profits(episode=0):
-    logs = env.logs[episode]
+def clone_model(model):
+    """
+    Clone a keras model
+    Adjusted from https://github.com/keras-rl/keras-rl/blob/216c3145f3dc4d17877be26ca2185ce7db462bad/rl/util.py#L8
+    """
+    config = {
+        'class_name': model.__class__.__name__,
+        'config': model.get_config(),
+    }
 
-    actions = np.array(logs['actions'])
-    profits = np.array(logs['profit'])
-    indices = np.arange(0, len(actions))
-    stocks  = df.values[WINDOW_SIZE-1:]
+    clone = model_from_config(config)
+    clone.set_weights(model.get_weights())
 
-    logs = pd.DataFrame({
-        'action': actions,
-        'profit': profits, 
-        'stock': stocks,
-        'bought': actions == BUY,
-        'sold': actions == SELL,
-        'held': actions == HOLD}).reset_index()
-
-    logs['action_cat'] = logs['action'].replace({0: 'Buy', 1: 'Sell', 2: 'Hold'})
-    
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(x=logs['index'], 
-                             y=logs['profit'],
-                             mode='lines',
-                             name='Profits'))
-    
-    fig.add_trace(go.Scatter(x=logs['index'], 
-                         y=logs['stock'],
-                         mode='lines',
-                         name='Stock'))
-
-    bought = logs[logs['bought']]
-    fig.add_trace(go.Scatter(x=bought['index'], 
-                             y=bought['profit'],
-                             mode='markers',
-                             name='Bought'))
-
-    sold = logs[logs['sold']]
-    fig.add_trace(go.Scatter(x=sold['index'], 
-                             y=sold['profit'],
-                             mode='markers',
-                             name='Sold'))
-
-    fig.show()
-    
-    fig = go.Figure(data=[go.Pie(labels=logs['action_cat'].value_counts().index,
-                             values=logs['action_cat'].value_counts().values)])
-    fig.show()
+    return clone

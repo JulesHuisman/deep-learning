@@ -39,19 +39,21 @@ def run(ticker, hyperparams, position):
     hidden_layers       = hyperparams['hidden_layers']
     learning_rate       = hyperparams['learning_rate']
     sample_batch_size   = hyperparams['sample_batch_size']
-    T                   = hyperparams['T']
     window_size         = hyperparams['window_size']
     price_difference    = hyperparams['price_difference']
     look_back_ratio     = hyperparams['look_back_ratio']
     discount_rate       = hyperparams['discount_rate']
+    target_tau          = hyperparams['target_tau']
+    target_update_rate  = hyperparams['target_update_rate']
 
-    neurons           = int(round(neurons))
-    hidden_layers     = int(round(hidden_layers))
-    sample_batch_size = int(round(sample_batch_size))
-    T                 = int(round(T))
-    window_size       = int(round(window_size))
-    price_look_back   = int(round(look_back_ratio * window_size))
-    price_difference  = int(round(price_difference))
+    neurons            = int(round(neurons))
+    hidden_layers      = int(round(hidden_layers))
+    sample_batch_size  = int(round(sample_batch_size))
+    T                  = int(round(T))
+    window_size        = int(round(window_size))
+    price_look_back    = int(round(look_back_ratio * window_size))
+    price_difference   = int(round(price_difference))
+    target_update_rate = int(round(target_update_rate))
 
     # Initialize the deep Q learner
     trader = Trader(state_size=window_size,
@@ -60,7 +62,8 @@ def run(ticker, hyperparams, position):
                     hidden_layers=hidden_layers,
                     learning_rate=learning_rate,
                     discount_rate=discount_rate,
-                    sample_batch_size=sample_batch_size)
+                    sample_batch_size=sample_batch_size,
+                    target_tau=target_tau)
 
     # Get the stock data
     stock = Stock(ticker=ticker, 
@@ -79,11 +82,12 @@ def run(ticker, hyperparams, position):
                               trader=trader,
                               log_file=None,
                               reset_trader=True,
-                              T=T,
-                              pbarpos=position)
+                              pbarpos=position,
+                              target_update_rate=target_update_rate
+                              episodes=5)
 
     # Start the simulation
-    portfolio, baseline, ratio = environment.run(3)
+    portfolio, baseline, ratio = environment.run()
 
     return ratio
 
@@ -96,11 +100,9 @@ if __name__ == '__main__':
         # Ratio between subsequent hidden layers e.g. (128 * .5 = 64)
         'neuron_shrink_ratio': (.3, 1.),
         # The learning rate of the neural network
-        'learning_rate': (0.0001, 0.01),
+        'learning_rate': (0.0001, 0.001),
         # The size of the memory of the agent (for how long to remember previous trades)
-        'sample_batch_size': (8, 64),
-        # Memory replay interval
-        'T': (1,10),
+        'sample_batch_size': (8, 128),
         # Size of stock window
         'window_size': (31, 365),
         # Wether to look at absolute or relative prices e.g. (1,10,5) or (1,9,-5)
@@ -108,7 +110,11 @@ if __name__ == '__main__':
         # At which percentage of the window size to look at the historic price for reward function
         'look_back_ratio': (.1, .9),
         # Discount rate of the Q function
-        'discount_rate': (.5, .99)
+        'discount_rate': (.8, .99),
+        # Interpolation ratio of the target network
+        'target_tau': (0.005, .2),
+        # Interval of target network adjustment
+        'target_update_rate': (1, 365)
     }
 
     optimizer = BayesianOptimization(
@@ -116,7 +122,7 @@ if __name__ == '__main__':
         pbounds=parameters
     )
 
-    load_logs(optimizer, logs=['data/bayesian copy.json'])
+    # load_logs(optimizer, logs=['data/bayesian copy.json'])
 
     optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
 

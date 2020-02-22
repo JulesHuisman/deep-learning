@@ -1,9 +1,11 @@
 import numpy as np
 import pickle
 import yfinance as yf
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from utils import split_sequence
 from tqdm import tqdm, trange
+
+from logger import Logger
 
 np.set_printoptions(suppress=True)
 
@@ -31,22 +33,25 @@ class Environment:
                  trader,
                  train_percentage=.3,
                  log_file='logs',
-                 T=10,
+                 target_update_rate=100,
                  reset_trader=True,
-                 pbarpos=0):
+                 pbarpos=0,
+                 episodes=5):
 
-        self.stock            = stock
-        self.train_percentage = train_percentage
-        self.window_size      = window_size
-        self.trader           = trader
-        self.logs             = {'baseline': [], 'portfolio': []}
-        self.log_file         = log_file
-        self.T                = T
-        self.reset_trader     = reset_trader
-        self.pbarpos          = pbarpos
+        self.stock              = stock
+        self.train_percentage   = train_percentage
+        self.window_size        = window_size
+        self.trader             = trader
+        self.logs               = {'baseline': [], 'portfolio': [], 'maxq': []}
+        self.log_file           = log_file
+        self.target_update_rate = target_update_rate
+        self.reset_trader       = reset_trader
+        self.pbarpos            = pbarpos
+        self.episodes           = episodes
+        self.logger             = Logger(self.stock.ticker, self.episodes)
 
-        self.train_size       = int(self.train_percentage * len(self.stock.stock_prices))
-        self.start_stock      = self.stock.stock_prices[self.train_size]
+        self.train_size         = int(self.train_percentage * len(self.stock.stock_prices))
+        self.start_stock        = self.stock.stock_prices[self.train_size]
 
     def reset(self):
         """
@@ -72,20 +77,12 @@ class Environment:
         prev_stock_price    = self.stock.stock_prices_1[self.index]
         prev_n_stock_price  = self.stock.stock_prices_n[self.index]
 
-        return (1 + (action-1) * ((current_stock_price - prev_stock_price) / prev_stock_price)) * (prev_stock_price / prev_n_stock_price)
+        return (1 + ((action-1) * ((current_stock_price - prev_stock_price) / prev_stock_price))) * (prev_stock_price / prev_n_stock_price)
 
     def act(self, action):
         """
         Calculate new portfolio value, and hold a new position
         """
-
-        # Print the previous position the trader is holding
-        # if self.position == actions.SHORT:
-        #     print('Shorting')
-        # elif self.position == actions.HOLD:
-        #     print('Holding')
-        # elif self.position == actions.LONG:
-        #     print('Longing')
 
         current_stock_price = self.stock.stock_prices[self.index]
         prev_stock_price    = self.stock.stock_prices_1[self.index]
@@ -108,35 +105,47 @@ class Environment:
         """
         return (self.index < self.train_size)
 
-    def run(self, episodes=1):
+    def _log(self, episode):
+        """
+        Log the progress of the run
+        """
+        self.logger.log_scalar(episode, 'portfolio ratio', (self.portfolio / self.baseline), self.index)
+
+    def run(self):
         """
         Start the simulation
         """
-        for episode in range(episodes):
+        for episode in range(self.episodes):
             seq_len        = len(self.stock.stock_seq)
             state          = self.stock.stock_seq[0:1]
             done           = False
             portfolio_logs = []
             baseline_logs  = []
+            maxq_logs      = []
             hold = 0
 
             # Reset the state before each run
             self.reset()
 
-            with tqdm(range(seq_len), position=self.pbarpos, mininterval=2) as t:
+            with tqdm(range(seq_len), position=self.pbarpos, mininterval=.1) as t:
                 for index in t:
                     # Set the index of the iteration
                     self.index = index
+
+                    # Progressbar ratio
+                    t.set_postfix(ratio=f'{bcolors.FAIL if (self.portfolio / self.baseline < 1) else bcolors.OKGREEN}{(self.portfolio / self.baseline):.2f}{bcolors.ENDC}', 
+                                  episode=episode, 
+                                  stock=self.stock.ticker)
 
                     # Stock prices
                     current_stock_price = self.stock.stock_prices[self.index]
                     prev_stock_price    = self.stock.stock_prices_1[self.index]
 
-                    # print(f'--------------------- {episode} / {episodes} --- {self.index} / {seq_len}')
-
                     # Experience replay every T iterations
-                    if (index % self.T) == 0:
-                        self.trader.replay()
+                    if (index % self.target_update_rate) == 0:
+                        self.trader.soft_update_target_model()
+
+                    self.trader.replay()
 
                     # Get the next state to store in trader memory
                     next_state = self.stock.stock_seq[index+1:index+2]
@@ -157,19 +166,16 @@ class Environment:
                         # Store logs
                         portfolio_logs.append(self.portfolio / self.start_stock)
                         baseline_logs.append(self.baseline / self.start_stock)
+                        maxq_logs.append(np.amax(self.trader.model.predict(state)[0]))
 
-                        # Progressbar ratio
-                        t.set_postfix(ratio=f'{(self.portfolio / self.baseline):.2f}')
-
-                    # print(f'Portfolio {bcolors.OKBLUE}${"{0:.2f}".format(self.portfolio)}{bcolors.ENDC}')
-                    # print(f'Stock price {bcolors.OKBLUE}${"{0:.2f}".format(current_stock_price)}{bcolors.ENDC}')
-                    # print(f'Delta {bcolors.FAIL if (self.portfolio - self.baseline < 0) else bcolors.OKGREEN}${"{0:.2f}".format(self.portfolio - self.baseline)}{bcolors.ENDC}')
+                        self._log(episode)
 
                     state = next_state
 
             # Store logs
             self.logs['portfolio'].append(np.array(portfolio_logs))
             self.logs['baseline'] = baseline_logs
+            self.logs['maxq'] = maxq_logs
             self.store_logs()
 
         portfolio = np.average(np.array([p[-1] for p in self.logs['portfolio']]))
