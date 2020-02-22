@@ -49,7 +49,6 @@ def run(ticker, hyperparams, position):
     neurons            = int(round(neurons))
     hidden_layers      = int(round(hidden_layers))
     sample_batch_size  = int(round(sample_batch_size))
-    T                  = int(round(T))
     window_size        = int(round(window_size))
     price_look_back    = int(round(look_back_ratio * window_size))
     price_difference   = int(round(price_difference))
@@ -80,11 +79,11 @@ def run(ticker, hyperparams, position):
                               window_size=window_size, 
                               train_percentage=.5,
                               trader=trader,
-                              log_file=None,
+                              logging=False,
                               reset_trader=True,
                               pbarpos=position,
-                              target_update_rate=target_update_rate
-                              episodes=5)
+                              target_update_rate=target_update_rate,
+                              episodes=3)
 
     # Start the simulation
     portfolio, baseline, ratio = environment.run()

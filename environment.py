@@ -32,6 +32,7 @@ class Environment:
                  window_size,
                  trader,
                  train_percentage=.3,
+                 logging=True,
                  log_file='logs',
                  target_update_rate=100,
                  reset_trader=True,
@@ -43,15 +44,18 @@ class Environment:
         self.window_size        = window_size
         self.trader             = trader
         self.logs               = {'baseline': [], 'portfolio': [], 'maxq': []}
+        self.logging            = logging
         self.log_file           = log_file
         self.target_update_rate = target_update_rate
         self.reset_trader       = reset_trader
         self.pbarpos            = pbarpos
         self.episodes           = episodes
-        self.logger             = Logger(self.stock.ticker, self.episodes)
 
-        self.train_size         = int(self.train_percentage * len(self.stock.stock_prices))
-        self.start_stock        = self.stock.stock_prices[self.train_size]
+        if self.logging:
+            self.logger = Logger(self.stock.ticker, self.episodes)
+
+        self.train_size  = int(self.train_percentage * len(self.stock.stock_prices))
+        self.start_stock = self.stock.stock_prices[self.train_size]
 
     def reset(self):
         """
@@ -109,7 +113,8 @@ class Environment:
         """
         Log the progress of the run
         """
-        self.logger.log_scalar(episode, 'portfolio ratio', (self.portfolio / self.baseline), self.index)
+        if self.logging:
+            self.logger.log_scalar(episode, 'portfolio ratio', (self.portfolio / self.baseline), self.index)
 
     def run(self):
         """
@@ -185,7 +190,7 @@ class Environment:
         return portfolio, baseline, ratio
 
     def store_logs(self):
-        if self.log_file:
+        if self.logging:
             with open(f'data/{self.log_file}.pkl', 'wb') as handle:
                 pickle.dump(self.logs, handle, protocol=pickle.HIGHEST_PROTOCOL)
 

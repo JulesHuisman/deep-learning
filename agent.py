@@ -42,7 +42,7 @@ class Trader:
     def build_model(self):
         model = Sequential()
 
-        # neurons = self.neurons
+        neurons = self.neurons
 
         # model.add(Reshape((-1, 1), input_shape=(self.state_size,)))
         # model.add(AveragePooling1D(4))
@@ -50,22 +50,22 @@ class Trader:
         # model.add(Conv1D(4, kernel_size=10, activation='relu'))
         # model.add(Flatten())
 
-        model.add(Dense(128, 
+        model.add(Dense(neurons, 
                         input_shape=(self.state_size,), 
                         activation='relu',
                         kernel_initializer=RandomNormal(stddev=0.001),
                         bias_initializer='zeros'))
 
-        model.add(Dense(64, 
-                        activation='relu',
-                        kernel_initializer=RandomNormal(stddev=0.001),
-                        bias_initializer='zeros'))
+        # model.add(Dense(64, 
+        #                 activation='relu',
+        #                 kernel_initializer=RandomNormal(stddev=0.001),
+        #                 bias_initializer='zeros'))
 
         # model.add(LSTM(64, activation='tanh'))
         
-        # for hidden_layer in range(self.hidden_layers - 1):
-        #     neurons *= self.neuron_shrink_ratio
-        #     model.add(Dense(math.ceil(neurons), activation='relu'))
+        for hidden_layer in range(self.hidden_layers - 1):
+            neurons *= self.neuron_shrink_ratio
+            model.add(Dense(math.ceil(neurons), activation='relu', kernel_initializer=RandomNormal(stddev=0.001), bias_initializer='zeros'))
 
         model.add(Dense(self.action_size, activation='linear'))
 
