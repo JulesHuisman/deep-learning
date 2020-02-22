@@ -79,9 +79,7 @@ class Environment:
         
         current_stock_price = self.stock.stock_prices[self.index]
         prev_stock_price    = self.stock.stock_prices_1[self.index]
-        prev_n_stock_price  = self.stock.stock_prices_n[self.index]
 
-        return (1 + ((action-1) * ((current_stock_price - prev_stock_price) / prev_stock_price))) * (prev_stock_price / prev_n_stock_price)
 
     def act(self, action):
         """
