@@ -9,32 +9,16 @@ class Stocks:
     def __init__(self, tickers, start='2005-1-1', end='2018-4-1'):
         self.tickers = tickers
 
-        stocks = self._fetch_stocks(tickers)
-        stocks = self._merge_stocks(stocks)
-        stocks = self._select_timeframe(stocks, start, end)
+        prices = self._fetch_stocks(tickers)
+        prices = self._merge_stocks(prices)
+        prices = self._select_timeframe(prices, start, end)
 
-        self._stocks = stocks
+        self._prices = prices
         
     @property
-    def stocks(self):
-        """
-        Returns the closing stock prices
-        """
-        return self._stocks
-
-    @property
-    def simple_returns(self):
-        """
-        Returns the simple returns of the stocks
-        """
-        return simple_returns(self._stocks)
-
-    @property
-    def log_returns(self):
-        """
-        Returns the log returns of the stocks
-        """
-        return log_returns(self._stocks)
+    def prices(self):
+        """Returns the closing stock prices"""
+        return self._prices
 
     def _fetch_stocks(self, tickers):
         """
@@ -53,8 +37,20 @@ class Stocks:
             else:
                 stock = self._load_stock(ticker)
                 
-            # Rename the closing price to the ticker symbol
-            stock = stock['Close'].rename(ticker)
+            # Get the closing price
+            stock = stock['Close']
+            
+            # Fill remove weekends (Only sample business days)
+            stock = stock.resample('B').last().fillna(method='ffill')
+
+            # Rename the stock to the ticker symbol
+            stock = stock.rename(ticker)
+
+            # Drop left over nan values
+            stock = stock.dropna()
+
+            # Rename the index
+            stock.index = stock.index.rename('date')
                 
             stocks.append(stock)
             

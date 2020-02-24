@@ -37,7 +37,7 @@ def simple_returns(values):
     """
     values = convert(values)
     
-    return ((values / values.shift(1)) - 1).fillna(0)
+    return values.pct_change().fillna(0)
 
 def log_returns(values):
     """Converts values to log returns.
@@ -136,3 +136,22 @@ def max_drawdown(returns):
     """
     _drawdown = drawdown(returns)
     return _drawdown.expanding(1).min()
+    
+def smooth(values, smoothing=20, window='hanning'):
+    if smoothing<3:
+        return values
+    s=np.r_[2*values[0]-values[smoothing-1::-1],values,2*values[-1]-values[-1:-smoothing:-1]]
+    if window == 'flat': #moving average
+        w=np.ones(smoothing,'d')
+    else:  
+        w=eval('np.'+window+'(smoothing)')
+    y=np.convolve(w/w.sum(),s,mode='same')
+
+    return y[smoothing:-smoothing+1]
+
+def df_create(index, columns):
+    """Create a dataframe"""
+    return pd.DataFrame(index=index, columns=columns)
+
+def df_clean(df):
+    return df.replace(df, np.nan)
