@@ -7,7 +7,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from collections import deque
 from keras.models import Sequential, Model
-from keras.layers import Dense, Conv1D, Input, Lambda, Reshape, Flatten, MaxPooling1D, AveragePooling1D, LSTM
+from keras.layers import Dense, Conv1D, Input, Lambda, Reshape, Flatten, MaxPooling1D, AveragePooling1D, LSTM, LeakyReLU
 from keras.optimizers import Adam, RMSprop, SGD
 from keras.initializers import RandomNormal
 from keras import backend as K
@@ -47,7 +47,7 @@ class Trader:
 
         # model.add(Reshape((-1, 1), input_shape=(self.state_size,)))
         # model.add(MaxPooling1D(4, strides=1))
-        # model.add(AveragePooling1D(7, strides=1))
+        # model.add(AveragePooling1D(10, strides=10))
         # model.add(Conv1D(12, kernel_size=7, activation='relu'))
         # model.add(AveragePooling1D(180, strides=1))
         # model.add(Flatten())
@@ -57,11 +57,11 @@ class Trader:
                         activation='relu'))
 
         # model.add(Dense(64, 
-        #                 activation='relu',
+        #                 activation='leaky_relu',
         #                 kernel_initializer=RandomNormal(stddev=0.001),
         #                 bias_initializer='zeros'))
 
-        # model.add(LSTM(64, activation='tanh'))
+        # model.add(LSTM(64, activation='leaky_relu'))
         
         for hidden_layer in range(self.hidden_layers - 1):
             neurons *= self.neuron_shrink_ratio
@@ -71,6 +71,8 @@ class Trader:
 
         model.compile(loss='huber_loss', optimizer=Adam(lr=self.learning_rate))
         # model.compile(loss='huber_loss', optimizer='rmsprop')
+
+        print(model.summary())
 
         return model
 
@@ -163,4 +165,4 @@ class Trader:
                        target_f, 
                        epochs=1, 
                        verbose=0,
-                       batch_size=16)
+                       batch_size=8)

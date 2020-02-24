@@ -1,5 +1,6 @@
 import numpy as np
 import yfinance as yf
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 class Stock:
     def __init__(self, 
@@ -9,7 +10,6 @@ class Stock:
                  normalize=True,
                  diff=True,
                  clip=True,
-                 price_look_back=2,
                  start_date='2010-1-1', 
                  end_date='2020-1-1'):
         
@@ -18,7 +18,6 @@ class Stock:
         self.train_size      = train_size
         self.start_date      = start_date
         self.end_date        = end_date
-        self.price_look_back = price_look_back
         self.diff            = diff
         self.normalize       = normalize
         self.clip            = clip
@@ -70,7 +69,8 @@ class Stock:
         mean = np.mean(stocks)
         std = np.std(stocks)
         
-        return np.clip(stocks, mean-std, mean+std)
+        return np.tanh(stocks)
+        # return np.clip(stocks, mean-std, mean+std)
 
     @staticmethod
     def _split_sequence(sequence, n_steps):

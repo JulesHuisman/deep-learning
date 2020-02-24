@@ -35,8 +35,19 @@ def simulation(**hyperparams):
     window_size        = int(round(window_size))
     price_difference   = int(round(price_difference))
     price_clip         = int(round(price_clip))
-    target_update_rate = int(round(target_update_rate))
     train_iterations   = int(round(train_iterations))
+
+    print('neurons', neurons);
+    print('neuron_shrink_ratio', neuron_shrink_ratio);
+    print('hidden_layers', hidden_layers);
+    print('learning_rate', learning_rate);
+    print('sample_batch_size', sample_batch_size);
+    print('window_size', window_size);
+    print('price_difference', price_difference);
+    print('price_clip', price_clip);
+    print('discount_rate', discount_rate);
+    print('target_tau', target_tau);
+    print('train_iterations', train_iterations);
 
     # Initialize the deep Q learner
     trader = Trader(state_size=window_size,
@@ -49,7 +60,7 @@ def simulation(**hyperparams):
                     target_tau=target_tau)
 
     # Get the stock data
-    stock = Stock(ticker='AMD', 
+    stock = Stock(ticker='TSLA', 
                   window_size=window_size, 
                   train_size=1.0,
                   normalize=False,
@@ -103,12 +114,12 @@ if __name__ == '__main__':
         pbounds=parameters
     )
 
-    # load_logs(optimizer, logs=['data/bayesian copy.json'])
+    load_logs(optimizer, logs=['data/bayesian copy.json'])
 
     optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
 
     optimizer.maximize(
-        init_points=5,
+        init_points=3,
         n_iter=10,
     )
 

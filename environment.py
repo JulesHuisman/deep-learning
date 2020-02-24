@@ -1,7 +1,6 @@
 import numpy as np
 import pickle
 import warnings
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from tqdm import tqdm, trange
 
 from logger import Logger
@@ -127,7 +126,7 @@ class Environment:
             pass
             # self.logger.log_scalar(episode, 'portfolio ratio', (self.portfolio / self.baseline), self.index)
 
-    def episode(self, episode, start_index, stop_index, start_price, ratio_threshold=None, batch_size=16):
+    def episode(self, episode, start_index, stop_index, start_price, ratio_threshold=None, testing=False):
         """
         Run one episode
         """
@@ -174,10 +173,10 @@ class Environment:
                 # New state is the next state
                 state = next_state
 
-                # Stop the episode if minimum threshold is reached
-                if ratio_threshold and ((self.portfolio / self.baseline) < ratio_threshold) and self.trader.memory_filled():
-                    self.runs -= 1
-                    break
+                # # Stop the episode if minimum threshold is reached
+                # if ratio_threshold and ((self.portfolio / self.baseline) < ratio_threshold) and self.trader.memory_filled():
+                #     self.runs -= 1
+                #     break
 
                 logs.append(self.portfolio / start_price)
 
@@ -203,7 +202,7 @@ class Environment:
                      start_index=self.train_size, 
                      stop_index=len(self.stock.stock_prices)-1,
                      start_price=self.start_stock_test,
-                     batch_size=16)
+                     testing=True)
 
         # Store logs
         self.logs['test'].append(logs)
