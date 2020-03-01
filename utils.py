@@ -154,4 +154,15 @@ def df_create(index, columns):
     return pd.DataFrame(index=index, columns=columns)
 
 def df_clean(df):
-    return df.replace(df, np.nan)
+    return df.replace(df, 0)
+
+def one_hot(size, index):
+    """
+    Creates a one hot encoded array
+    """
+    a = np.zeros(size)
+    a[index] = 1
+    return a
+
+def normalize(values):
+    return (values - np.mean(values)) / np.std(values)

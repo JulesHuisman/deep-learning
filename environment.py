@@ -2,9 +2,10 @@ import pandas as pd
 
 from pandas.tseries.offsets import BDay
 from utils import *
+from scipy.special import softmax
 
 class Env:
-    def __init__(self, stocks, window_size=30):
+    def __init__(self, stocks, window_size=30, fee=0.002):
         self._prices = stocks.prices
 
         # Add cash to be able to trade to cash
@@ -23,7 +24,10 @@ class Env:
         self.action_size = len(self.universe)
 
         # Counter to keep track of progress
-        self._counter = 0
+        self.counter = 0
+
+        # Trading fee
+        self.fee = fee
 
     @property
     def prices(self):
@@ -36,9 +40,24 @@ class Env:
         return self._returns
 
     @property
-    def index(self):
+    def log_returns(self):
+        """Logaritmic returns of the assets"""
+        return log_returns(self._prices)
+
+    @property
+    def today(self):
         """Current day of the environment"""
-        return self._prices.index[self._counter]
+        return self._prices.index[self.counter]
+
+    @property
+    def yesterday(self):
+        """Previous day of the environment"""
+        return self._prices.index[self.counter - 1]
+
+    @property
+    def tomorrow(self):
+        """Next day of the environment"""
+        return self._prices.index[self.counter + 1]
 
     @property
     def universe(self):
@@ -59,13 +78,13 @@ class Env:
     def state(self):
         """Get the current state of the environment"""
         # return self._prices.loc[self.index]
-        return self._get_window(start=(self._counter-self.window_size), end=self._counter)
+        return self._get_window(start=(self.counter-self.window_size), end=self.counter)
 
     @property
     def next_state(self):
         """Get the state of the next business day of the environment"""
         # return self._prices.loc[self.index + BDay(1)]
-        return self._get_window(start=(self._counter-self.window_size+1), end=(self._counter+1))
+        return self._get_window(start=(self.counter-self.window_size+1), end=(self.counter+1))
 
     def _get_window(self, start, end):
         """Get a window of the log returns"""
@@ -81,10 +100,21 @@ class Env:
         return lr.reshape(1, -1, (self.action_size-1))
 
     def _is_done(self):
-        return (self.index == self.dates[-1])
+        return (self.today == self.dates[-2])
 
-    def _get_reward(self, action):
-        return self._returns.loc[self.index] * action
+    def _get_return(self, prev_position, position):
+        """
+        Get the reward of holding the current position
+        """
+        delta = sum(abs(position[:-1] - prev_position[:-1]))
+        return self._returns.loc[self.today] * position - (delta * self.fee)
+
+    def _get_reward(self, prev_position, position):
+        """
+        Get the reward of holding the current position
+        """
+        delta = sum(abs(position[:-1] - prev_position[:-1]))
+        return np.log(1 + self._returns.loc[self.today] * position) - (delta * self.fee)
 
     def register(self, agent):
         """
@@ -93,6 +123,7 @@ class Env:
         # Setup the agent to fit to the environment
         agent.setup(index=self.dates, 
                     columns=self.universe,
+                    window_size=self.window_size,
                     action_size=self.action_size)
 
         # Register the agent
@@ -100,15 +131,18 @@ class Env:
 
     def reset(self):
         """Reset the environment"""
-        self._counter = 1
+        self.counter = self.window_size
 
         # Reset the agent
         self.agent.reset()
 
-        # Return the first state
-        return self.state
+        # Default position
+        position = one_hot(self.action_size, self.action_size-1)
 
-    def step(self, action, position):
+        # Return the first state
+        return self.state, position
+
+    def step(self, next_position):
         """
         Let the agent take one step in the environment
         """
@@ -117,22 +151,25 @@ class Env:
         next_state = self.next_state
         done       = self._is_done()
 
-        # print(self._counter, position)
+        prev_position = self.agent.positions.loc[self.yesterday].values
+        position      = self.agent.positions.loc[self.today].values
+
+        # print('Prev position', prev_position, 'Position:', position, 'Next position:', next_position)
 
         # Get the reward of the action
-        reward = self._get_reward(position).sum()
+        returns = self._get_return(prev_position, position).sum()
+        reward = self._get_reward(prev_position, position).sum()
 
-        # Store action and reward for agent
-        self.agent.positions.loc[self.index] = position
-        self.agent.rewards.loc[self.index] = reward
+        # print('Reward', reward, 'Return', returns)
 
-        self.agent.train(state, action, reward, next_state, done)
-
-        # Store in agent memory
-        # self.agent.remember(state, action, reward, next_state, done)
+        # Store position and reward for agent
+        self.agent.positions.loc[self.tomorrow]    = next_position
+        self.agent.rewards.loc[self.today]         = reward
+        self.agent.returns.loc[self.today]         = returns
+        self.agent.states.loc[self.today, 'state'] = state[0]
 
         # Increase the counter
-        self._counter += 1
+        self.counter += 1
 
-        return next_state, reward, done
+        return next_state, next_position, done
 

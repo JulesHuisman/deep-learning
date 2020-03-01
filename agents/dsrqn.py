@@ -1,7 +1,7 @@
 from agents.agent import Agent
 
 from keras.models import Sequential, Model
-from keras.layers import Dense, Conv1D, Input, Lambda, Reshape, Flatten, MaxPooling1D, AveragePooling1D, LSTM, LeakyReLU
+from keras.layers import Dense, Input, LSTM, concatenate
 from keras.optimizers import Adam
 from keras import backend as K
 from scipy.special import softmax
@@ -17,48 +17,47 @@ class DSRQN(Agent):
         """
         Create a keras model to learn the optimal porfolio policy
         """
-        X = Input(shape=(None, (action_size-1)))
+        historic_input = Input(shape=(None, (action_size-1)), name='historic_input')
+        position_input = Input(shape=(action_size,), name='position_input')
 
-        lstm = LSTM(32, activation='relu', kernel_initializer='he_uniform')(X)
-        fc = Dense(24, activation='relu', kernel_initializer='he_uniform')(lstm)
+        lstm = LSTM(32, activation='relu', name='lstm')(historic_input)
 
-        y = Dense(self.action_size, activation='linear', kernel_initializer='he_uniform')(fc)
+        x = concatenate([lstm, position_input], name='merge')
 
-        model = Model(X, y)
+        fc = Dense(32, activation='relu', name='dense')(x)
+
+        y = Dense(action_size, activation='linear', name='output')(fc)
+
+        model = Model(inputs=[historic_input, position_input], outputs=y)
 
         model.compile(loss='mse', optimizer=Adam(lr=self.lr))
 
         return model
 
-    def act(self, state):
-        """
-        Take an action based on a certain state
-        """
-        action = self.model.predict(state)[0]
-        position = softmax(action)
+    def q_value(self, state):
+        """Get the q value of a certain state"""
+        return self.model.predict([state, np.array([self.position])])[0]
 
-        return action, position
+    def train(self, state, position, reward, next_state, done):
+        pass
+        # target = self.model.predict(state)
+        # target_val = self.model.predict(next_state)
 
-    def train(self, state, action, reward, next_state, done):
-        target = self.model.predict(state)
-        target_val = self.model.predict(next_state)[0]
+        # # print('target', target)
+        # # print('action', action)
+        # # print('reward', reward)
+        # # print('target_val', target_val)
+        # # print('done', done)
 
-        # print('target', target)
-        # print('action', action)
-        # print('reward', reward)
-        # print('target_val', target_val)
-        # print('done', done)
-        reward *= 100
+        # if done:
+        #     target[0][action] = reward
+        # else:
+        #     target[0][action] = reward + self.gamma * np.amax(target_val)
 
-        if done:
-            target[0][np.argmax(action)] = reward
-        else:
-            target[0][np.argmax(action)] = reward + self.gamma * np.amax(target_val)
+        # # print('target with reward', target)
+        # # print()
 
-        # print('target with reward', target)
-        # print()
-
-        self.model.fit(state, target, epochs=1, verbose=0, batch_size=1)
+        # self.model.fit(state, target, epochs=1, verbose=0, batch_size=1)
 
         # target = self.model.predict(update_input)
         # target_val = self.target_model.predict(update_target)

@@ -11,8 +11,8 @@ LARGE  = (18,7)
 MEDIUM = (11,6)
 SMALL  = (6,4)
 
-def plot_prices(values, title='Prices', xlabel='Date', ylabel='Price', figsize=LARGE):
-    """Plot certain prices or returns.
+def plot(values, title='', xlabel='Date', ylabel='', figsize=LARGE):
+    """Simple line plot.
 
     Parameters
     ----------
@@ -36,6 +36,8 @@ def plot_prices(values, title='Prices', xlabel='Date', ylabel='Price', figsize=L
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
+    plt.legend(loc='upper left')
+
 def plot_cumulative_returns(returns, figsize=LARGE):
     """Plot the cumulative rewards of returns.
 
@@ -52,7 +54,9 @@ def plot_cumulative_returns(returns, figsize=LARGE):
     """
     cr = cum_returns(returns)
 
-    plot_prices(cr, title='Cumulative rewards', ylabel='Returns', figsize=figsize)
+    plot(cr, title='Cumulative rewards', ylabel='Returns', figsize=figsize)
+
+    plt.legend(loc='upper left')
 
 def plot_drawdown(returns, title='Drawdown', figsize=LARGE):
     """Plot the cumulative rewards and drawdown of a return.
@@ -75,7 +79,7 @@ def plot_drawdown(returns, title='Drawdown', figsize=LARGE):
     plt.plot(dd, 'r-', label='Drawdown')
     plt.plot(mdd, 'r-.', label='Max drawdown')
     plt.title(title)
-    plt.legend()
+    plt.legend(loc='upper left')
     plt.plot()
 
 def show_sharpe_ratio(returns):
@@ -100,7 +104,7 @@ def show_sharpe_ratio(returns):
     return df.style.background_gradient(cmap=cm)
 
 def plot_positions(positions):
-    values = [smooth(positions[ticker], 10) for ticker in positions.columns]
+    values = [smooth(positions[ticker], 50) for ticker in positions.columns]
 
     # Make the plot
     plt.figure(figsize=LARGE)
