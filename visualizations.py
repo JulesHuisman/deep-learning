@@ -104,16 +104,14 @@ def show_sharpe_ratio(returns):
     return df.style.background_gradient(cmap=cm)
 
 def plot_positions(positions):
-    values = [smooth(positions[ticker], 50) for ticker in positions.columns]
+    values = [smooth(positions[ticker], int(len(positions) / 20)) for ticker in positions.columns]
 
     # Make the plot
     plt.figure(figsize=LARGE)
-    plt.stackplot(range(0,len(positions)), *values, labels=positions.columns)
+    plt.stackplot(range(0, len(positions)), *values, labels=positions.columns)
     plt.legend(reversed(plt.legend().legendHandles), reversed(positions.columns), loc='upper left')
-    plt.margins(0,0)
+    plt.margins(0, 0)
     plt.title('Position of all assets')
     plt.xlabel('Iteration')
     plt.ylabel('Position percentage')
     plt.show()
-    
-

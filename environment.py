@@ -5,7 +5,7 @@ from utils import *
 from scipy.special import softmax
 
 class Env:
-    def __init__(self, stocks, window_size=30, fee=0.002):
+    def __init__(self, stocks, logger, window_size=30, fee=0.002):
         self._prices = stocks.prices
 
         # Add cash to be able to trade to cash
@@ -28,6 +28,9 @@ class Env:
 
         # Trading fee
         self.fee = fee
+
+        # Tensorboard logger
+        self.logger = logger
 
     @property
     def prices(self):
@@ -78,13 +81,13 @@ class Env:
     def state(self):
         """Get the current state of the environment"""
         # return self._prices.loc[self.index]
-        return self._get_window(start=(self.counter-self.window_size), end=self.counter)
+        return self._get_window(start=(self.counter - self.window_size), end=self.counter)
 
     @property
     def next_state(self):
         """Get the state of the next business day of the environment"""
         # return self._prices.loc[self.index + BDay(1)]
-        return self._get_window(start=(self.counter-self.window_size+1), end=(self.counter+1))
+        return self._get_window(start=(self.counter - self.window_size + 1), end=(self.counter + 1))
 
     def _get_window(self, start, end):
         """Get a window of the log returns"""
@@ -97,7 +100,7 @@ class Env:
                     .iloc[max(start, 0):end]
                     .values)
 
-        return lr.reshape(1, -1, (self.action_size-1))
+        return lr.reshape(-1, (self.action_size - 1))
 
     def _is_done(self):
         return (self.today == self.dates[-2])
@@ -116,15 +119,16 @@ class Env:
         delta = sum(abs(position[:-1] - prev_position[:-1]))
         return np.log(1 + self._returns.loc[self.today] * position) - (delta * self.fee)
 
-    def register(self, agent):
+    def register(self, agent, training):
         """
         Register an agent to this environment
         """
         # Setup the agent to fit to the environment
-        agent.setup(index=self.dates, 
+        agent.setup(index=self.dates,
                     columns=self.universe,
                     window_size=self.window_size,
-                    action_size=self.action_size)
+                    action_size=self.action_size,
+                    training=training)
 
         # Register the agent
         self.agent = agent
@@ -137,12 +141,12 @@ class Env:
         self.agent.reset()
 
         # Default position
-        position = one_hot(self.action_size, self.action_size-1)
+        position = one_hot(self.action_size, self.action_size - 1)
 
         # Return the first state
         return self.state, position
 
-    def step(self, next_position):
+    def step(self, next_position, q_value):
         """
         Let the agent take one step in the environment
         """
@@ -151,25 +155,40 @@ class Env:
         next_state = self.next_state
         done       = self._is_done()
 
-        prev_position = self.agent.positions.loc[self.yesterday].values
-        position      = self.agent.positions.loc[self.today].values
-
-        # print('Prev position', prev_position, 'Position:', position, 'Next position:', next_position)
+        prev_position = self.agent.positions[self.agent.mode].loc[self.yesterday].values
+        position      = self.agent.positions[self.agent.mode].loc[self.today].values
 
         # Get the reward of the action
         returns = self._get_return(prev_position, position).sum()
         reward = self._get_reward(prev_position, position).sum()
 
-        # print('Reward', reward, 'Return', returns)
-
         # Store position and reward for agent
-        self.agent.positions.loc[self.tomorrow]    = next_position
-        self.agent.rewards.loc[self.today]         = reward
-        self.agent.returns.loc[self.today]         = returns
-        self.agent.states.loc[self.today, 'state'] = state[0]
+        self.agent.positions[self.agent.mode].loc[self.tomorrow] = next_position
+        self.agent.rewards[self.agent.mode].loc[self.today]      = reward
+        self.agent.returns[self.agent.mode].loc[self.today]      = returns
+        self.agent.q_values[self.agent.mode].loc[self.today]     = q_value
+
+        # If the agent can remember
+        if hasattr(self.agent, 'remember'):
+            self.agent.remember(state, position, reward, next_state, next_position, done)
+
+        # Train the agent
+        self.agent.train(done)
 
         # Increase the counter
         self.counter += 1
 
         return next_state, next_position, done
 
+    def tensorboard(self, episode):
+        """
+        Create a tensorboard log
+        """
+        info = self.agent.summary
+
+        self.logger.log_scalar('Cumulative returns', info['cumulative_returns'], episode)
+        self.logger.log_scalar('Mean returns', info['mean_returns'], episode)
+        self.logger.log_scalar('Sharpe ratio', info['sharpe_ratio'], episode)
+        self.logger.log_scalar('Maximum drawdown', info['maximum_drawdown'], episode)
+        self.logger.log_scalar('Exploration rate', info['exploration_rate'], episode)
+        self.logger.log_scalar('Position changes', info['position_changes'], episode)

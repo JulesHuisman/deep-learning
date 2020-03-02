@@ -62,9 +62,8 @@ class REINFORCE(Agent):
         return self.action_to_position(action)
 
     def train(self):
-        print('Training')
-        # rewards   = self.rewards.values[30:-1, 0]
-        rewards   = cum_returns(self.returns.values[30:-1, 0])
+        rewards   = self.rewards.values[30:-1, 0]
+        # rewards   = cum_returns(self.returns.values[30:-1, 0])
         states    = self.states.values[30:-1, 0]
         positions = self.positions.values[30:-1]
 
@@ -82,9 +81,8 @@ class REINFORCE(Agent):
             update_inputs[i] = states[i]
             advantages[i][actions[i]] = discounted_rewards[i]
 
+        self.discounted_rewards = discounted_rewards
         self.update_inputs = update_inputs
         self.advantages = advantages
 
-        print(update_inputs.shape, advantages.shape)
-
-        self.model.fit([update_inputs, positions], advantages, epochs=1, batch_size=8, verbose=1)
+        self.model.fit([update_inputs, positions], advantages, epochs=1, batch_size=episode_length, verbose=0)
