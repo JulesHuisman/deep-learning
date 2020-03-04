@@ -6,15 +6,16 @@ import os
 from utils import *
 
 class Stocks:
-    def __init__(self, tickers, start='2005-1-1', end='2018-4-1'):
+    def __init__(self, tickers, start='2005-1-1', end='2018-4-1', trading_freq='W-FRI'):
         self.tickers = tickers
+        self.trading_freq = trading_freq
 
         prices = self._fetch_stocks(tickers)
         prices = self._merge_stocks(prices)
         prices = self._select_timeframe(prices, start, end)
 
         self._prices = prices
-        
+
     @property
     def prices(self):
         """Returns the closing stock prices"""
@@ -25,7 +26,7 @@ class Stocks:
         Either load stocks from storage or fetch from yahoo finance
         """
         stocks = []
-        
+
         # Loop through all the different stocks
         for ticker in tickers:
             # If the stock does not exists on storage
@@ -36,12 +37,12 @@ class Stocks:
             # If it does exist in storage, load it
             else:
                 stock = self._load_stock(ticker)
-                
+
             # Get the closing price
             stock = stock['Close']
-            
+
             # Fill remove weekends (Only sample business days)
-            stock = stock.resample('B').last().fillna(method='ffill')
+            stock = stock.resample(self.trading_freq).last()
 
             # Rename the stock to the ticker symbol
             stock = stock.rename(ticker)
@@ -51,25 +52,25 @@ class Stocks:
 
             # Rename the index
             stock.index = stock.index.rename('date')
-                
+
             stocks.append(stock)
-            
+
         return stocks
-    
+
     @staticmethod
     def _merge_stocks(stocks):
         """
         Merges all the stock prices into one dataframe
         """
         return pd.concat(stocks, axis=1)
-    
+
     @staticmethod
     def _select_timeframe(stocks, start, end):
         """
         Merges all the stock prices into one dataframe
         """
         return stocks.loc[start:end]
-                
+
     @staticmethod
     def _load_stock(ticker):
         """
@@ -77,7 +78,7 @@ class Stocks:
         """
         stock = pd.read_pickle(f'data/stocks/{ticker}.pkl')
         return stock
-                
+
     @staticmethod
     def _fetch_stock(ticker):
         """
@@ -85,9 +86,9 @@ class Stocks:
         """
         stock = yf.Ticker(ticker)
         history = stock.history(period="max")
-        
+
         return history
-    
+
     @staticmethod
     def _store_stock(stock, ticker):
         """
@@ -96,7 +97,7 @@ class Stocks:
         filename = f'data/stocks/{ticker}.pkl'
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         stock.to_pickle(f'data/stocks/{ticker}.pkl')
-            
+
     @staticmethod
     def _stock_exists(ticker):
         """

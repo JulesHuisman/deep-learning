@@ -3,23 +3,25 @@ from utils import *
 from collections import deque
 
 from keras.models import Sequential, Model
-from keras.layers import Dense, Input, LSTM, concatenate, Flatten
+from keras.layers import Dense, Input, LSTM, concatenate, Flatten, BatchNormalization
 from keras.optimizers import Adam
 from keras import backend as K
+from scipy.special import softmax
 
 import numpy as np
 import random
 
-MEMORY_SIZE = 10_000
-MINIBATCH_SIZE = 32
+MEMORY_SIZE = 3_000
+MINIBATCH_SIZE = 64
 
 class DQN(Agent):
     def __init__(self):
         super(DQN, self).__init__()
 
         self.epsilon       = 1.0
-        self.epsilon_min   = 0.05
-        self.epsilon_decay = .999993
+        self.epsilon_min   = 0.01
+        self.epsilon_decay = .9995
+        self.train_start   = 1_000
         self.lr = 0.001
 
         self.memory = deque(maxlen=MEMORY_SIZE)
@@ -29,7 +31,7 @@ class DQN(Agent):
         super(DQN, self).setup(**kwargs)
 
         # Also add a target model
-        self.target_model = self._model(window_size=kwargs['window_size'], 
+        self.target_model = self._model(window_size=kwargs['window_size'],
                                         action_size=kwargs['action_size'])
 
         # Copy the weights
@@ -49,22 +51,23 @@ class DQN(Agent):
         historic_input = Input(shape=(window_size, (action_size - 1)), name='historic_input')
         position_input = Input(shape=(action_size,), name='position_input')
 
-        # Flatten the historic input because no RNN is used
-        flat = Flatten()(historic_input)
+        # # Flatten the historic input because no RNN is used
+        # flat = Flatten()(historic_input)
+        lstm = LSTM(32, activation='relu', name='lstm')(historic_input)
+        # norm = BatchNormalization(name='norm-1')(lstm)
 
         # Join the historic and position flows
-        x = concatenate([flat, position_input], name='merge')
+        x = concatenate([lstm, position_input], name='merge')
 
-        # Two dense layers
-        fc = Dense(64, activation='relu', name='dense-1')(x)
-        fc = Dense(32, activation='relu', name='dense-2')(fc)
+        fc = Dense(32, activation='relu', name='dense')(x)
+        # norm = BatchNormalization(name='norm-2')(fc)
 
         # Output layer
         y = Dense(action_size, activation='linear', name='output')(fc)
 
         model = Model(inputs=[historic_input, position_input], outputs=y)
 
-        model.compile(loss='huber_loss', optimizer=Adam(lr=self.lr))
+        model.compile(loss='mse', optimizer=Adam(lr=self.lr))
 
         return model
 
@@ -100,8 +103,8 @@ class DQN(Agent):
         if not self.training:
             return
 
-        # Wait until we have enough samples
-        if len(self.memory) < MINIBATCH_SIZE:
+        # Wait until threshold to start training
+        if len(self.memory) < self.train_start:
             return
 
         minibatch = random.sample(self.memory, MINIBATCH_SIZE)

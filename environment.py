@@ -107,7 +107,7 @@ class Env:
 
     def _get_return(self, prev_position, position):
         """
-        Get the reward of holding the current position
+        Get the return of the current position
         """
         delta = sum(abs(position[:-1] - prev_position[:-1]))
         return self._returns.loc[self.today] * position - (delta * self.fee)
@@ -117,7 +117,7 @@ class Env:
         Get the reward of holding the current position
         """
         delta = sum(abs(position[:-1] - prev_position[:-1]))
-        return np.log(1 + self._returns.loc[self.today] * position) - (delta * self.fee)
+        return (self._returns.loc[self.today] * position) - (delta * self.fee)
 
     def register(self, agent, training):
         """

@@ -39,7 +39,8 @@ class Agent:
         raise NotImplementedError
 
     def print_model(self):
-        return plot_model(self.model, show_shapes=True)
+        assert self.model, 'Make sure your agent has a model'
+        return plot_model(self.model, show_shapes=True, dpi=64)
 
     def setup(self, index, columns, window_size, action_size, training):
         """
@@ -79,10 +80,10 @@ class Agent:
 
     def save_logs(self, episode):
         """Store the progress dataframe"""
-        self.positions[self.mode].to_pickle(f'data/logs/{self.mode}-positions-{episode}.pkl')
-        self.rewards[self.mode].to_pickle(f'data/logs/{self.mode}-rewards-{episode}.pkl')
-        self.returns[self.mode].to_pickle(f'data/logs/{self.mode}-returns-{episode}.pkl')
-        self.q_values[self.mode].to_pickle(f'data/logs/{self.mode}-q-values-{episode}.pkl')
+        self.positions[self.mode].iloc[self.window_size:].to_pickle(f'data/logs/{self.mode}-positions-{episode}.pkl')
+        self.rewards[self.mode].iloc[self.window_size:].to_pickle(f'data/logs/{self.mode}-rewards-{episode}.pkl')
+        self.returns[self.mode].iloc[self.window_size:].to_pickle(f'data/logs/{self.mode}-returns-{episode}.pkl')
+        self.q_values[self.mode].iloc[self.window_size:].to_pickle(f'data/logs/{self.mode}-q-values-{episode}.pkl')
 
     @staticmethod
     def load_logs(episode, mode):
