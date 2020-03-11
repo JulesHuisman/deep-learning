@@ -1,8 +1,7 @@
 import pandas as pd
 
-from pandas.tseries.offsets import BDay
 from utils import *
-from scipy.special import softmax
+import math
 
 class Env:
     def __init__(self, stocks, logger, window_size=30, fee=0.002):
@@ -80,13 +79,11 @@ class Env:
     @property
     def state(self):
         """Get the current state of the environment"""
-        # return self._prices.loc[self.index]
         return self._get_window(start=(self.counter - self.window_size), end=self.counter)
 
     @property
     def next_state(self):
         """Get the state of the next business day of the environment"""
-        # return self._prices.loc[self.index + BDay(1)]
         return self._get_window(start=(self.counter - self.window_size + 1), end=(self.counter + 1))
 
     def _get_window(self, start, end):
@@ -110,14 +107,37 @@ class Env:
         Get the return of the current position
         """
         delta = sum(abs(position[:-1] - prev_position[:-1]))
-        return self._returns.loc[self.today] * position - (delta * self.fee)
+        return np.sum(self._returns.loc[self.today] * position) - (delta * self.fee)
 
     def _get_reward(self, prev_position, position):
         """
         Get the reward of holding the current position
         """
-        delta = sum(abs(position[:-1] - prev_position[:-1]))
-        return (self._returns.loc[self.today] * position) - (delta * self.fee)
+        previous_portfolio_value = self.agent.portfolio_value
+
+        fee = sum(abs(position[:-1] - prev_position[:-1])) * previous_portfolio_value * self.fee
+
+        # Growth ratio
+        # Simple stock returns [0.2, 0, -0.2]
+        # Position             [1,   0,  0  ]
+        # Growth ratio         0.2 + 1 = 1.2
+        growth_ratio = np.sum(self._returns.loc[self.today] * position) + 1
+
+        new_portfolio_value = (previous_portfolio_value * growth_ratio) - fee
+
+        # print('Position:', position)
+        # print('Returns', self._returns.loc[self.today].values)
+        # print('Portfolio value:', self.agent.portfolio_value)
+        # print('Growth ratio', growth_ratio)
+        # print('Fee', fee)
+        # print('New portfolio value', new_portfolio_value)
+        # print('Reward', math.log(new_portfolio_value / previous_portfolio_value))
+        # print()
+
+        # Update portfolio value
+        self.agent.portfolio_value = new_portfolio_value
+
+        return math.log(new_portfolio_value / previous_portfolio_value)
 
     def register(self, agent, training):
         """
@@ -159,8 +179,8 @@ class Env:
         position      = self.agent.positions[self.agent.mode].loc[self.today].values
 
         # Get the reward of the action
-        returns = self._get_return(prev_position, position).sum()
-        reward = self._get_reward(prev_position, position).sum()
+        returns = self._get_return(prev_position, position)
+        reward = self._get_reward(prev_position, position)
 
         # Store position and reward for agent
         self.agent.positions[self.agent.mode].loc[self.tomorrow] = next_position
@@ -170,7 +190,12 @@ class Env:
 
         # If the agent can remember
         if hasattr(self.agent, 'remember'):
-            self.agent.remember(state, position, reward, next_state, next_position, done)
+            # self.agent.remember(state, position, reward, next_state, next_position, done)
+            for i in range(self.action_size):
+                position = one_hot(self.action_size, i)
+                reward = self._get_reward(prev_position, position)
+
+                self.agent.remember(state, position, reward, next_state, next_position, done)
 
         # Train the agent
         self.agent.train(done)

@@ -27,6 +27,9 @@ class Agent:
         # Is training
         self.training = None
 
+        # Portfolio value
+        self.portfolio_value = 1
+
     @property
     def mode(self):
         """Training or testing mode"""
@@ -39,8 +42,8 @@ class Agent:
         raise NotImplementedError
 
     def print_model(self):
-        assert self.model, 'Make sure your agent has a model'
-        return plot_model(self.model, show_shapes=True, dpi=64)
+        if self.model:
+            return plot_model(self.model, show_shapes=True, dpi=64)
 
     def setup(self, index, columns, window_size, action_size, training):
         """
@@ -68,7 +71,13 @@ class Agent:
         self.q_values[self.mode]  = q_values
 
     def reset(self):
-        """Reset the logging dataframes"""
+        """
+        Reset the agent
+        """
+        # Set the portfolio value back to one
+        self.portfolio_value = 1
+
+        # Reset the logging dataframes
         self.positions[self.mode] = df_clean(self.positions[self.mode])
         self.rewards[self.mode]   = df_clean(self.rewards[self.mode])
         self.returns[self.mode]   = df_clean(self.returns[self.mode])

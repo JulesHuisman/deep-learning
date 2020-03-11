@@ -17,7 +17,7 @@ def convert(values):
     series : pd.Series
         Pandas series.
     """
-    if isinstance(values, (list,np.ndarray)):
+    if isinstance(values, (list, np.ndarray)):
         return pd.Series(values)
     else:
         return values
@@ -36,7 +36,7 @@ def simple_returns(values):
         Simple returns.
     """
     values = convert(values)
-    
+
     return values.pct_change().fillna(0)
 
 def log_returns(values):
@@ -53,7 +53,7 @@ def log_returns(values):
         Log returns.
     """
     values = convert(values)
-    
+
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         return np.log(values / values.shift(1)).fillna(0)
