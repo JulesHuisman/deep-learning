@@ -26,7 +26,7 @@ class Node:
         self.move = move
         
         # Has this node been expanded
-        self.is_expanded = False
+        self.expanded = False
         
         # Parent of the node
         self.parent = parent
@@ -37,8 +37,8 @@ class Node:
         self.child_total_value = np.zeros([7], dtype=np.float32)
         self.child_number_visits = np.zeros([7], dtype=np.float32)
         
-        # Possible actions to take
-        self.action_indices = []
+        # Possible moves to take from this node
+        self.legal_moves = []
         
     @property
     def number_visits(self):
@@ -61,7 +61,10 @@ class Node:
         self.parent.child_total_value[self.move] = value
     
     def child_Q(self):
-        """The Q value of the children"""
+        """
+        The Q value of the children
+        value / number of visits -> average value
+        """
         return self.child_total_value / (1 + self.child_number_visits)
     
     def child_U(self):
@@ -72,13 +75,13 @@ class Node:
         """
         Returns the best child based on the Q and U value (exploration vs exploitation)
         """
-        if self.action_indices != []:
-            best_move = self.child_Q() + self.child_U()
-            best_move = self.action_indices[np.argmax(best_move[self.action_indices])]
+        if self.legal_moves != []:
+            uct_values = self.child_Q() + self.child_U()
+            best_child = self.legal_moves[np.argmax(uct_values[self.legal_moves])]
         else:
-            best_move = np.argmax(self.child_Q() + self.child_U())
+            best_child = np.argmax(self.child_Q() + self.child_U())
             
-        return best_move
+        return best_child
     
     def select_leaf(self):
         """
@@ -86,20 +89,20 @@ class Node:
         """
         current = self
         
-        while current.is_expanded:
+        while current.expanded:
             best_move = current.best_child()
             current = current.maybe_add_child(best_move)
             
         return current
     
-    def add_dirichlet_noise(self, action_idices, child_priors):
+    def add_dirichlet_noise(self, next_moves, child_priors):
         """
         Add noise to the child priors.
         This adds to randomness to the process
         """
-        valid_child_priors = child_priors[action_idices]
+        valid_child_priors = child_priors[next_moves]
         valid_child_priors = 0.75 * valid_child_priors + 0.25 * np.random.dirichlet(np.zeros([len(valid_child_priors)], dtype=np.float32) + 192)
-        child_priors[action_idices] = valid_child_priors
+        child_priors[next_moves] = valid_child_priors
         
         return child_priors
     
@@ -109,26 +112,22 @@ class Node:
         This adds the children to the current node.
         """
         # Set expanded flag to true
-        self.is_expanded = True
+        self.expanded = True
         
         # Legal moves
-        action_indices = self.game.moves()
-        c_p = child_priors
+        self.legal_moves = self.game.moves()
+        self.child_priors = child_priors
         
         # No possible actions (node is a leaf)
-        if action_indices == []:
-            self.is_expanded = False
-            
-        self.action_indices = action_indices
+        if self.legal_moves == []:
+            self.expanded = False
         
-        # Mask all illegal actions REVISIT
-        c_p[[i for i in range(len(child_priors)) if i not in action_indices]] = 0.000000000
+        # Mask all illegal actions
+        self.child_priors[[i for i in range(len(self.child_priors)) if i not in self.legal_moves]] = 0.000000000
         
         # Add dirichlet noise to priors in root node
         if not self.parent.parent:
-            c_p = self.add_dirichlet_noise(action_indices, c_p)
-            
-        self.child_priors = c_p
+            self.child_priors = self.add_dirichlet_noise(self.legal_moves, self.child_priors)
     
     def maybe_add_child(self, move):
         """
@@ -149,10 +148,10 @@ class Node:
     def backup(self, value_estimate):
         """
         MCTS backup action.
-        FILL
+        Go back up the tree and increase visits and adjust value of all parent nodes.
         """
         current = self
-        
+
         # While not back at the root
         while current.parent is not None:
             # Add one visit to the node

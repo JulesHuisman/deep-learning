@@ -8,7 +8,7 @@ class Game:
     def __init__(self):
         self.empty = np.zeros((6, 7)).astype(int)
         self.board = self.empty.copy()
-        self.player = -1
+        self.player = [-1, 1][np.random.randint(2)]
 
     def play(self, col):
         # Don't play if the column is full
@@ -90,9 +90,12 @@ class Game:
         return actions
 
     def presentation(self):
-        board = self.board.copy().astype(str)
-        board[board == '0'] = ' '
-        board[board == '-1'] = 'X'
-        board[board == '1'] = 'O'
+        def to_char(sign):
+            if sign == 0:
+                return "' '"
+            elif sign == -1:
+                return "\033[95m'X'\033[0m"
+            elif sign == 1:
+                return "\033[92m'O'\033[0m"
 
-        return board
+        print(np.array2string(self.board, separator=' ', threshold=100, formatter={'int': to_char}))

@@ -3,27 +3,53 @@ from keras.layers import Dense, Input, Conv2D, add, Flatten, BatchNormalization,
 from keras.optimizers import Adam
 from keras.losses import mean_squared_error, binary_crossentropy
 from keras.utils import plot_model
+from keras.regularizers import l2
+import tensorflow as tf
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class ResBlock:
     """
     Custom class to create a residual block consisting of two convolution layers
     """
-    def __new__(self, inputs, block):
+    def __new__(self, inputs, filters, l2_reg):
         residual = inputs
     
-        conv_1 = Conv2D(128, (3, 3), padding='same', name=f'res-conv-{block}-1')(inputs)
-        norm_1 = BatchNormalization(name=f'res-norm-{block}-1')(conv_1)
+        conv_1 = Conv2D(filters,
+                        (4, 4),
+                        padding='same',
+                        use_bias=False,
+                        kernel_regularizer=l2(l2_reg))(inputs)
 
-        relu_1 = ReLU(name=f'res-relu-{block}-1')(norm_1)
+        norm_1 = BatchNormalization()(conv_1)
+        relu_1 = ReLU()(norm_1)
 
-        conv_2 = Conv2D(128, (3, 3), padding='same', name=f'res-conv-{block}-2')(relu_1)
-        norm_2 = BatchNormalization(name=f'res-norm-{block}-2')(conv_2)
+        conv_2 = Conv2D(filters,
+                        (4, 4),
+                        padding='same',
+                        use_bias=False,
+                        kernel_regularizer=l2(l2_reg))(relu_1)
 
-        out = add([residual, norm_2], name=f'res-add-{block}')
-
-        out = ReLU(name=f'res-relu-{block}-2')(out)
+        norm_2 = BatchNormalization()(conv_2)
+        out = add([residual, norm_2])
+        out = ReLU()(out)
 
         return out
+
+def softmax_cross_entropy_with_logits(y_true, y_pred):
+    p = y_pred
+    pi = y_true
+
+    zero = tf.zeros(shape=tf.shape(pi), dtype=tf.float32)
+    where = tf.equal(pi, zero)
+
+    negatives = tf.fill(tf.shape(pi), -100.0)
+    p = tf.where(where, negatives, p)
+
+    loss = tf.nn.softmax_cross_entropy_with_logits(labels=pi, logits=p)
+
+    return loss
 
 class ConnectNet:
     """
@@ -37,47 +63,77 @@ class ConnectNet:
         [0.58]
     """
 
-    def __init__(self):
-        self.model = self._model()
+    def __init__(self, name, filters=75, l2_reg=0.0001):
+        self.name    = name
+        self.filters = filters
+        self.l2_reg  = l2_reg
+
+        # Create the model
+        self.model   = self._model()
 
     def _model(self):
-        board_input = Input(shape=(6, 7, 3), name='board')
+        board_input = Input(shape=(6, 7, 3))
 
         # Start conv block
-        conv_1 = Conv2D(128, (3, 3), padding='same', name='conv-1')(board_input)
-        norm_1 = BatchNormalization(name='norm-1')(conv_1)
-        relu_1 = ReLU(name='relu-1')(norm_1)
+        conv_1 = Conv2D(self.filters, (4, 4), padding='same', kernel_regularizer=l2(self.l2_reg))(board_input)
+        norm_1 = BatchNormalization()(conv_1)
+        relu_1 = ReLU()(norm_1)
 
         # Residual convolution blocks
-        res_1 = ResBlock(relu_1, block=1)
-        res_2 = ResBlock(res_1, block=2)
-        res_3 = ResBlock(res_2, block=3)
+        res_1 = ResBlock(relu_1, self.filters, self.l2_reg)
+        res_2 = ResBlock(res_1, self.filters, self.l2_reg)
+        res_3 = ResBlock(res_2, self.filters, self.l2_reg)
+        res_4 = ResBlock(res_3, self.filters, self.l2_reg)
+        res_5 = ResBlock(res_4, self.filters, self.l2_reg)
+
+        # Policy head
+        policy_conv = Conv2D(2, (1, 1), use_bias=False, kernel_regularizer=l2(self.l2_reg))(res_5)
+        policy_norm = BatchNormalization()(policy_conv)
+        policy_relu = ReLU()(policy_norm)
+        policy_flat = Flatten()(policy_relu)
 
         # Policy output
-        policy_conv = Conv2D(128, (3, 3), padding='same', name='policy-conv')(res_3)
-        policy_norm = BatchNormalization(name='policy-norm')(policy_conv)
-        policy_relu = ReLU(name='policy-relu')(policy_norm)
-        policy_flat = Flatten(name='policy-flat')(policy_relu)
+        policy = Dense(7,
+                       activation='softmax',
+                       name='policy',
+                       use_bias=False,
+                       kernel_regularizer=l2(self.l2_reg))(policy_flat)
 
-        policy = Dense(7, name='policy', activation='softmax')(policy_flat)
+        # Value head
+        value_conv   = Conv2D(1, (1, 1), use_bias=False, kernel_regularizer=l2(self.l2_reg))(res_5)
+        value_norm   = BatchNormalization()(value_conv)
+        value_relu_1 = ReLU()(value_norm)
+        value_flat   = Flatten()(value_relu_1)
+
+        value_dense  = Dense(32, use_bias=False, kernel_regularizer=l2(self.l2_reg))(value_flat)
+        value_relu_2 = ReLU()(value_dense)
 
         # Value output
-        value_conv = Conv2D(128, (3, 3), padding='same', name='value-conv')(res_3)
-        value_norm = BatchNormalization(name='value-norm')(value_conv)
-        value_relu_1 = ReLU(name='value-relu-1')(value_norm)
-        value_flat = Flatten(name='value-flat')(value_relu_1)
+        value = Dense(1,
+                      activation='tanh',
+                      name='value',
+                      use_bias=False,
+                      kernel_regularizer=l2(self.l2_reg))(value_relu_2)
 
-        value_dense = Dense(32, name='value-dense')(value_flat)
-        value_relu_2 = ReLU(name='value-relu-2')(value_dense)
-
-        value = Dense(1, name='value')(value_relu_2)
-
+        # Final model
         model = Model(inputs=[board_input], outputs=[policy, value])
 
-        model.compile(optimizer=Adam(0.001, 0.8, 0.999), loss={'value': 'mse', 'policy': 'categorical_crossentropy'})
+        # Compile
+        model.compile(optimizer=Adam(0.001, 0.8, 0.999), loss={'value': 'mse', 'policy': softmax_cross_entropy_with_logits})
+
+        # Set the model name
+        model.name = self.name
         
         return model
 
     def plot(self):
         """Shows the structure of the network"""
         return plot_model(self.model, show_shapes=True, dpi=64)
+
+    def load(self, postfix):
+        """Load model weights"""
+        self.model.load_weights(os.path.join('data', self.name, 'models', self.name + '-' + str(postfix) + '.h5'))
+
+    def save(self, postfix):
+        """Store model weights"""
+        self.model.save_weights(os.path.join('data', self.name, 'models', self.name + '-' + str(postfix) + '.h5'))
