@@ -14,9 +14,6 @@ class Memory:
         if not os.path.exists(self.folder):
             os.makedirs(self.folder)
 
-        # Load memories from file system
-        self.load_memories()
-
     @property
     def filled(self):
         """Is the memory filled up?"""
@@ -37,14 +34,13 @@ class Memory:
 
     def remember(self, game, game_nr):
         """
-        Store a game in memory and in file storage
+        Store a game in file storage
         """
+        # Tranform to numpy array
+        game = np.array(game)
+
         # Store in file storage
         np.save(os.path.join(self.folder, f'game-{game_nr}.npy'), game)
-
-        # Store in memory
-        for move in game[::-1]:
-            self.memory.append(move)
 
     def load_memories(self):
         """
@@ -55,13 +51,13 @@ class Memory:
             if filename.endswith('.npy'):
                 game = np.load(os.path.join(self.folder, filename), allow_pickle=True)
                 
-                for move in game:
+                for move in game[::-1]:
                     self.memory.appendleft(move)
 
                 if self.filled:
                     break
 
-        print('Memory size:', len(self.memory), '\n')
+        print('\nMemory size:', len(self.memory), '\n')
 
     def get_minibatch(self, size):
         """

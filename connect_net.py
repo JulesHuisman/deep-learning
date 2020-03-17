@@ -1,19 +1,16 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import matplotlib.pyplot as plt
 
-from keras.models import Model
-from keras.layers import Dense, Input, Conv2D, add, Flatten, BatchNormalization, ReLU
-from keras.optimizers import Adam
-from keras.losses import mean_squared_error, binary_crossentropy
-from keras.utils import plot_model
-from keras.regularizers import l2
-import tensorflow as tf
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class ResBlock:
     """
     Custom class to create a residual block consisting of two convolution layers
     """
     def __new__(self, inputs, filters, l2_reg):
+        from keras.layers import Conv2D, add, BatchNormalization, ReLU
+        from keras.regularizers import l2
+
         residual = inputs
     
         conv_1 = Conv2D(filters,
@@ -38,6 +35,8 @@ class ResBlock:
         return out
 
 def softmax_cross_entropy_with_logits(y_true, y_pred):
+    import tensorflow as tf
+
     p = y_pred
     pi = y_true
 
@@ -72,6 +71,12 @@ class ConnectNet:
         self.model   = self._model()
 
     def _model(self):
+        from keras.models import Model
+        from keras.layers import Dense, Input, Conv2D, add, Flatten, BatchNormalization, ReLU
+        from keras.optimizers import Adam, SGD
+        from keras.losses import mean_squared_error, binary_crossentropy
+        from keras.regularizers import l2
+
         board_input = Input(shape=(6, 7, 3))
 
         # Start conv block
@@ -85,9 +90,10 @@ class ConnectNet:
         res_3 = ResBlock(res_2, self.filters, self.l2_reg)
         res_4 = ResBlock(res_3, self.filters, self.l2_reg)
         res_5 = ResBlock(res_4, self.filters, self.l2_reg)
+        res_6 = ResBlock(res_5, self.filters, self.l2_reg)
 
         # Policy head
-        policy_conv = Conv2D(2, (1, 1), use_bias=False, kernel_regularizer=l2(self.l2_reg))(res_5)
+        policy_conv = Conv2D(2, (1, 1), use_bias=False, kernel_regularizer=l2(self.l2_reg))(res_6)
         policy_norm = BatchNormalization()(policy_conv)
         policy_relu = ReLU()(policy_norm)
         policy_flat = Flatten()(policy_relu)
@@ -105,7 +111,7 @@ class ConnectNet:
         value_relu_1 = ReLU()(value_norm)
         value_flat   = Flatten()(value_relu_1)
 
-        value_dense  = Dense(32, use_bias=False, kernel_regularizer=l2(self.l2_reg))(value_flat)
+        value_dense  = Dense(20, use_bias=False, kernel_regularizer=l2(self.l2_reg))(value_flat)
         value_relu_2 = ReLU()(value_dense)
 
         # Value output
@@ -119,7 +125,8 @@ class ConnectNet:
         model = Model(inputs=[board_input], outputs=[policy, value])
 
         # Compile
-        model.compile(optimizer=Adam(0.001, 0.8, 0.999), loss={'value': 'mse', 'policy': softmax_cross_entropy_with_logits})
+        # model.compile(optimizer=Adam(0.01, 0.8, 0.999), loss={'value': 'mse', 'policy': softmax_cross_entropy_with_logits})
+        model.compile(optimizer=SGD(0.1, 0.9), loss={'value': 'mse', 'policy': softmax_cross_entropy_with_logits})
 
         # Set the model name
         model.name = self.name
@@ -127,13 +134,27 @@ class ConnectNet:
         return model
 
     def plot(self):
+        from keras.utils import plot_model
         """Shows the structure of the network"""
         return plot_model(self.model, show_shapes=True, dpi=64)
 
     def load(self, postfix):
         """Load model weights"""
-        self.model.load_weights(os.path.join('data', self.name, 'models', self.name + '-' + str(postfix) + '.h5'))
+        try:
+            self.model.load_weights(os.path.join('data', self.name, 'models', self.name + '-' + str(postfix) + '.h5'))
+            print(f'Loaded network: \033[94m{self.name + "-" + str(postfix)}\033[0m')
+        except:
+            print('\033[93mModel not found\033[0m')
 
     def save(self, postfix):
-        """Store model weights"""
-        self.model.save_weights(os.path.join('data', self.name, 'models', self.name + '-' + str(postfix) + '.h5'))
+        """
+        Store model weights
+        """
+        storage_location = os.path.join('data', self.name, 'models')
+        file_name = self.name + '-' + str(postfix) + '.h5'
+
+        # Create a storage folder
+        if not os.path.exists(storage_location):
+            os.makedirs(storage_location)
+
+        self.model.save_weights(os.path.join(storage_location, file_name))

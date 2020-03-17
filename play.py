@@ -38,7 +38,12 @@ class Play:
                 # Run MCTS
                 root = Simulation.mcts(root, 1000, self.net.model)
 
-                move = np.argmax(root.child_priors)
+                # Get the playing policy based on the child visits
+                policy = Simulation.get_policy(root, 1)
+
+                print(policy)
+
+                move = np.argmax(policy)
             else:
                 while True:
                     try:
@@ -59,7 +64,7 @@ class Play:
                 if self.game.player * -1 == 1:
                     print('\n\033[92mYou won!\033[0m \n')
                 else:
-                    print('\n\033[95mAI won!\033[0m')
+                    print('\n\033[95mAI won!\033[0m \n')
                 done = True
             elif self.game.moves == []:
                 print('\nDraw')
@@ -67,8 +72,8 @@ class Play:
 
 if __name__ == '__main__':
     game = Game()
-    net = ConnectNet('ConnectNet-V1')
-    # net.load(0)
+    net = ConnectNet('DeepFour-V1')
+    net.load('current')
     
     play = Play(game, net)
     play.start()
