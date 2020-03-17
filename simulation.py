@@ -6,7 +6,6 @@ from game import Game
 from memory import Memory
 
 from copy import deepcopy
-from tempfile import TemporaryFile
 from multiprocessing import Pool
 
 np.set_printoptions(precision=2, suppress=True, linewidth=150)
@@ -15,9 +14,10 @@ class Simulation:
     """
     Perform self-play to improve the ConnectNet
     """
-    def __init__(self, net, games_per_iteration, moves_per_game, memory_size, minibatch_size, training_loops):
-        self.games_per_iteration = games_per_iteration
+    def __init__(self, net, best_net, games_per_iteration, moves_per_game, memory_size, minibatch_size, training_loops):
         self.net                 = net
+        self.best_net            = best_net
+        self.games_per_iteration = games_per_iteration
         self.moves_per_game      = moves_per_game
         self.minibatch_size      = minibatch_size
         self.training_loops      = training_loops
@@ -26,11 +26,15 @@ class Simulation:
         self.memory = Memory(folder=f'data/{self.net.name}/memory',
                              size=memory_size)
 
-    def mcts(self, root, moves_per_game, net):
+    @staticmethod
+    def mcts(root, moves_per_game, net):
         """
         Perform one Monte Carlo Tree Search.
         Decides the next play.
         """
+        # Add some noise to the children of the root node
+        root.add_dirichlet_noise()
+
         for i in range(moves_per_game):
             # Select the best leaf (exploit or explore)
             leaf = root.select_leaf()
@@ -91,7 +95,7 @@ class Simulation:
                 temperature = 0.1
             
             # Encoded board
-            encoded_board = deepcopy(game.encoded())
+            encoded_board = deepcopy(root.game.encoded())
             
             # Run UCT search
             root = self.mcts(root, self.moves_per_game, self.net.model)
@@ -101,26 +105,23 @@ class Simulation:
             
             # Decide the next move based on the policy
             move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
-            
-            # Play the move
-            game.play(move)
-        
-            # Log status to the console
-            self.console_print(game_nr, root, game, policy)
 
             # Update the root node
             root = root.children[move]
+        
+            # Log status to the console
+            self.console_print(game_nr, root, policy)
             
             # Store the intermediate state
             states.append((encoded_board, policy))
             
             # If somebody won
-            if game.won():
+            if root.game.won():
 
-                if (game.player * -1) == -1:
+                if (root.game.player * -1) == -1:
                     print('X won \n')
                     value = -1
-                if (game.player * -1) == 1:
+                if (root.game.player * -1) == 1:
                     print('O won \n')
                     value = 1
                     
@@ -135,29 +136,30 @@ class Simulation:
             if index == 0:
                 states_values.append((data[0], data[1], 0))
             else:
+                print(value)
                 states_values.append((data[0], data[1], value))
 
         return np.array(states_values)
 
-    def console_print(self, game_nr, root, game, policy):
+    def console_print(self, game_nr, root, policy):
         """
         Log status to the console
         """
         # Predict the policy and value of the board state
-        policy_estimate, value_estimate = self.net.model.predict(np.array([game.encoded()]))
+        policy_estimate, value_estimate = self.net.model.predict(np.array([root.game.encoded()]))
 
         policy_print      = ['{:.2f}'.format(value) for value in policy]
         policy_pred_print = ['{:.2f}'.format(value) for value in policy_estimate[0]]
 
-        print(f'Game: {game_nr}', 'Move:', '\033[95mX\033[0m (-1)' if game.player == 1 else '\033[92mO\033[0m (1)', '\n')
+        print(f'Game: {game_nr}', 'Move:', '\033[95mX\033[0m (-1)' if root.game.player == 1 else '\033[92mO\033[0m (1)', '\n')
 
         print('Policy:     ', ' | '.join(policy_print))
         print('Policy pred:', ' | '.join(policy_pred_print), '\n')
 
-        print('Q Value:   ', int(round(root.total_value / root.parent.child_number_visits[root.move])))
+        print('Q Value:   ', round(root.total_value / root.parent.child_number_visits[root.move], 2))
         print('Value pred:', round(value_estimate[0][0], 2), '\n')
 
-        game.presentation()
+        root.game.presentation()
         print()
 
     def replay(self, iteration):
@@ -181,19 +183,19 @@ class Simulation:
         game_nr = self.memory.latest_game
 
         while True:
+            # Run one game of self play
+            game = self.self_play(game_nr)
 
-            with Pool(5) as p:
-                print(p.map(self.self_play, [1, 2, 3]))
-
-            # # Run one game of self play
-            # game = self.self_play(game_nr)
-
-            # # Store the game in memory
-            # self.memory.remember(game, game_nr)
+            # Store the game in memory
+            self.memory.remember(game, game_nr)
+            
+            print('Memory size:', len(self.memory.memory))
 
             # Train the model
             if (game_nr % self.games_per_iteration == 0) and (self.memory.filled):
                 iteration = int(game_nr / self.games_per_iteration)
                 self.replay(iteration)
+
+            # Duel against previous best HERE
 
             game_nr += 1

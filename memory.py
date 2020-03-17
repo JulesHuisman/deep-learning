@@ -43,7 +43,7 @@ class Memory:
         np.save(os.path.join(self.folder, f'game-{game_nr}.npy'), game)
 
         # Store in memory
-        for move in game:
+        for move in game[::-1]:
             self.memory.append(move)
 
     def load_memories(self):

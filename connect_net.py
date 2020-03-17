@@ -1,3 +1,6 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 from keras.models import Model
 from keras.layers import Dense, Input, Conv2D, add, Flatten, BatchNormalization, ReLU
 from keras.optimizers import Adam
@@ -5,9 +8,6 @@ from keras.losses import mean_squared_error, binary_crossentropy
 from keras.utils import plot_model
 from keras.regularizers import l2
 import tensorflow as tf
-
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class ResBlock:
     """

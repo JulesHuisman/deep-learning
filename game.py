@@ -55,7 +55,11 @@ class Game:
 
             return False
 
-        return check_piece(-1) or check_piece(1)
+        # Check if someone won
+        if self.player * -1 == -1:
+            return check_piece(-1)
+        else:
+            return check_piece(1)
 
     def encoded(self):
         """

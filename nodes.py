@@ -9,6 +9,7 @@ class DummyNode:
     """
     def __init__(self):
         self.parent = None
+        self.children = {}
         self.child_total_value = defaultdict(float)
         self.child_number_visits = defaultdict(float)
 
@@ -18,7 +19,7 @@ class Node:
     Used for Monte Carlo Tree Search.
     https://github.com/plkmo/AlphaZero_Connect4/blob/master/src/MCTS_c4.py
     """
-    def __init__(self, game, move, parent=None):
+    def __init__(self, game, move, depth=0, parent=None):
         # Game state
         self.game = game
         
@@ -39,6 +40,9 @@ class Node:
         
         # Possible moves to take from this node
         self.legal_moves = []
+
+        # Keep track of the depth of this game state
+        self.depth = depth
         
     @property
     def number_visits(self):
@@ -95,16 +99,14 @@ class Node:
             
         return current
     
-    def add_dirichlet_noise(self, next_moves, child_priors):
+    def add_dirichlet_noise(self):
         """
         Add noise to the child priors.
         This adds to randomness to the process
         """
-        valid_child_priors = child_priors[next_moves]
+        valid_child_priors = self.child_priors[self.legal_moves]
         valid_child_priors = 0.75 * valid_child_priors + 0.25 * np.random.dirichlet(np.zeros([len(valid_child_priors)], dtype=np.float32) + 192)
-        child_priors[next_moves] = valid_child_priors
-        
-        return child_priors
+        self.child_priors[self.legal_moves] = valid_child_priors
     
     def expand(self, child_priors):
         """
@@ -118,16 +120,12 @@ class Node:
         self.legal_moves = self.game.moves()
         self.child_priors = child_priors
         
-        # No possible actions (node is a leaf)
+        # No possible actions (node is a final state)
         if self.legal_moves == []:
             self.expanded = False
         
         # Mask all illegal actions
         self.child_priors[[i for i in range(len(self.child_priors)) if i not in self.legal_moves]] = 0.000000000
-        
-        # Add dirichlet noise to priors in root node
-        if not self.parent.parent:
-            self.child_priors = self.add_dirichlet_noise(self.legal_moves, self.child_priors)
     
     def maybe_add_child(self, move):
         """
@@ -141,7 +139,7 @@ class Node:
             game.play(move)
             
             # Add the child
-            self.children[move] = Node(game, move, parent=self)
+            self.children[move] = Node(game, move, parent=self, depth=(self.depth + 1))
             
         return self.children[move]
     
