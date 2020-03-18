@@ -47,17 +47,20 @@ class Memory:
         Load memories from file storage.
         Fill it up until limit reached
         """
+        self.memory.clear()
+
         for filename in self.sorted_games:
             if filename.endswith('.npy'):
-                game = np.load(os.path.join(self.folder, filename), allow_pickle=True)
-                
-                for move in game[::-1]:
-                    self.memory.appendleft(move)
+                try:
+                    game = np.load(os.path.join(self.folder, filename), allow_pickle=True)
+                    
+                    for move in game[::-1]:
+                        self.memory.appendleft(move)
 
-                if self.filled:
-                    break
-
-        print('\nMemory size:', len(self.memory), '\n')
+                    if self.filled:
+                        break
+                except:
+                    continue
 
     def get_minibatch(self, size):
         """

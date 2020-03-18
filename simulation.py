@@ -177,6 +177,8 @@ class Simulation:
         # Store games as a side-effect (because of multiprocessing)
         simulation.memory.remember(states_values, game_nr)
 
+        print(f'Worker {worker} done!')
+
     @staticmethod
     def console_print(game_nr, root, policy, net):
         """
@@ -203,21 +205,18 @@ class Simulation:
         """
         Train the model by replaying from memory
         """
-        from connect_net import ConnectNet
-        
-        print('Before', len(self.memory.memory))
-
         # Load games from storage into working memory
         self.memory.load_memories()
-
-        print('After', len(self.memory.memory))
 
         # If the memory is not filled yet, continue self play
         if not self.memory.filled:
             print(f'Memory not filled yet ({len(self.memory.memory)})')
             return
 
+        from connect_net import ConnectNet
+
         net = ConnectNet(self.net_name)
+        net.load('current')
 
         for training in range(self.training_loops):
             # Sample a minibatch
@@ -242,7 +241,7 @@ class Simulation:
         game_nr = self.memory.latest_game + 1
 
         # Keep track of the iteration for training
-        prev_iteration = game_nr // self.games_per_iteration
+        prev_iteration = (game_nr // self.games_per_iteration)
 
         print('Iteration', prev_iteration)
 
@@ -255,9 +254,11 @@ class Simulation:
                 # Increase the current game number
                 game_nr = self.memory.latest_game + 1
 
-                iteration = game_nr // self.games_per_iteration
+                iteration = (game_nr // self.games_per_iteration)
 
                 print('Iteration', iteration)
+
+                self.replay(iteration=iteration)
 
                 # When arriving at a new iteration, retrain the network
                 if iteration > prev_iteration:

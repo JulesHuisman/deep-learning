@@ -36,10 +36,12 @@ class Play:
                                 parent=root)
 
                 # Run MCTS
-                root = Simulation.mcts(root, 1000, self.net.model)
+                root = Simulation.mcts(root, 2000, self.net.model)
 
                 # Get the playing policy based on the child visits
                 policy = Simulation.get_policy(root, 1)
+
+                print(root.child_Q() / root.child_number_visits)
 
                 print(policy)
 
