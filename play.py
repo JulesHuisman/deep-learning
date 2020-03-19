@@ -12,10 +12,7 @@ class Play:
 
     def start(self):
         done = False
-
         move = None
-
-        root = DummyNode()
 
         while not done:
             print()
@@ -26,24 +23,18 @@ class Play:
             self.game.presentation()
             print()
 
+            root = Node(game=self.game,
+                        move=move,
+                        parent=DummyNode())
+
             # AI turn
             if self.game.player == -1:
-                if move in root.children:
-                    root = root.children[move]
-                else:
-                    root = Node(game=self.game,
-                                move=move,
-                                parent=root)
 
                 # Run MCTS
-                root = Simulation.mcts(root, 2000, self.net.model)
+                root = Simulation.mcts(root, 1000, self.net)
 
                 # Get the playing policy based on the child visits
-                policy = Simulation.get_policy(root, 1)
-
-                print(root.child_Q() / root.child_number_visits)
-
-                print(policy)
+                policy = Simulation.get_policy(root, 0.1)
 
                 move = np.argmax(policy)
             else:
@@ -74,7 +65,7 @@ class Play:
 
 if __name__ == '__main__':
     game = Game()
-    net = ConnectNet('DeepFour-V1')
+    net = ConnectNet('DeepFour-V2')
     net.load('current')
     
     play = Play(game, net)

@@ -2,14 +2,14 @@ import numpy as np
 import os
 import random
 import multiprocessing
+import time
 
 from nodes import DummyNode, Node
 from game import Game
 from memory import Memory
 
-from itertools import repeat
 from copy import deepcopy
-from multiprocessing import Pool
+from scipy.special import softmax
 
 np.set_printoptions(precision=2, suppress=True, linewidth=150)
 
@@ -24,8 +24,7 @@ class Simulation:
                  memory_size,
                  minibatch_size,
                  training_loops,
-                 workers,
-                 games_per_pool):
+                 workers):
 
         self.net_name            = net_name
         self.games_per_iteration = games_per_iteration
@@ -33,7 +32,6 @@ class Simulation:
         self.minibatch_size      = minibatch_size
         self.training_loops      = training_loops
         self.workers             = workers
-        self.games_per_pool      = games_per_pool
 
         # Memory stores played games
         self.memory = Memory(folder=f'data/{self.net_name}/memory', size=memory_size)
@@ -44,27 +42,29 @@ class Simulation:
         Perform one Monte Carlo Tree Search.
         Decides the next play.
         """
-        # Add some noise to the children of the root node
-        root.add_dirichlet_noise()
-
         for i in range(moves_per_game):
             # Select the best leaf (exploit or explore)
             leaf = root.select_leaf()
+
+            # If the leaf is a winning state
+            if leaf.game.won():
+                leaf.backprop(leaf.game.player)
+                continue
+
+            # If the leaf is a draw
+            if leaf.game.moves() == []:
+                leaf.backprop(0)
+                continue
             
             # Encode the board for the connect net
             encoded_board = leaf.game.encoded()
             
             # Predict the policy and value of the board state
-            policy_estimate, value_estimate = net.predict(np.array([encoded_board]))
-            policy_estimate, value_estimate = policy_estimate[0], value_estimate[0][0]
-            
-            # If end is reached (somebody won or draw)
-            if leaf.game.won() or leaf.game.moves() == []:
-                leaf.backup(value_estimate)
-                continue
+            policy_estimate, value_estimate = net.predict(encoded_board)
+            # policy_estimate, value_estimate = softmax(np.random.uniform(.3, .7, size=(7))), np.tanh(np.random.uniform(-.5, .5))
                 
             leaf.expand(policy_estimate)
-            leaf.backup(value_estimate)
+            leaf.backprop(value_estimate)
             
         return root
 
@@ -80,28 +80,33 @@ class Simulation:
         return n_visits / sum(n_visits)
 
     @staticmethod
-    def self_play(simulation, start_game_nr, game_nr):
+    def self_play(simulation, game_nr):
         """
         Let the ConnectNet play a number of games against itself.
         Each moves is decided by the Monte Carlo Tree Search.
         Values are seeded by the neural network.
         We need to create the neural network here, because the lack of support for multiprocessing by Tensorflow.
         """
-        from connect_net import ConnectNet
-
-        # Get the real game number
-        game_nr = start_game_nr + game_nr
-
-        # Get the identity of the sub-process
-        worker = multiprocessing.current_process()._identity[0]
-        print(f'Worker {worker} is picking up game {game_nr}')
-
+        # Random seed, otherwise all workers have the same random actions
         random.seed()
         np.random.seed()
 
-        # Perform self play with the latest neural network
-        net = ConnectNet(simulation.net_name)
-        net.load('current')
+        from connect_net import ConnectNet
+
+        try:
+            # Get the identity of the sub-process
+            worker = multiprocessing.current_process()._identity[0]
+
+            # Only one worker should print
+            should_print = (worker % simulation.workers == 0)
+        # Not multiprocessing
+        except:
+            should_print = True
+
+        # # Perform self play with the latest neural network
+        net = ConnectNet(simulation.net_name, only_predict=True)
+        net.load('current', False)
+        # net = None
 
         # Create a new empty game
         game = Game()
@@ -111,25 +116,25 @@ class Simulation:
         value         = 0
         move_count    = 0
         done          = False
-
-        root = Node(game=game,
-                    move=None,
-                    parent=DummyNode())
         
         # Keep playing while the game is not done
-        while not done and root.game.moves() != []:
+        while not done and game.moves() != []:
+            start = time.time()
+
+            # Root of the search tree is the current move
+            root = Node(game=game)
             
-            # Explore less when later in the game
+            # Explore for the first 10 moves, after that exploit
             if move_count <= 10:
                 temperature = 1.1
             else:
                 temperature = 0.1
             
             # Encoded board
-            encoded_board = deepcopy(root.game.encoded())
+            encoded_board = deepcopy(game.encoded())
             
             # Run UCT search
-            root = Simulation.mcts(root, simulation.moves_per_game, net.model)
+            root = Simulation.mcts(root, simulation.moves_per_game, net)
             
             # Get the next policy
             policy = Simulation.get_policy(root, temperature)
@@ -137,34 +142,35 @@ class Simulation:
             # Decide the next move based on the policy
             move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
 
-            # Update the root node
-            root = root.children[move]
+            # Increase the total moves
+            move_count += 1
+
+            # Make the move
+            game.play(move)
         
             # Log status to the console
-            if worker == 1:
-                # pass
-                Simulation.console_print(game_nr, root, policy, net)
+            if should_print:
+                time_per_move = (time.time() - start) * 1000
+                q_value = (root.child_Q()[move] * game.player * -1)
+                Simulation.console_print(game_nr, game, policy, net, time_per_move, q_value)
             
             # Store the intermediate state
             states.append((encoded_board, policy))
             
             # If somebody won
-            if root.game.won():
+            if game.won():
 
-                if (root.game.player * -1) == -1:
-                    if worker == 1:
+                if (game.player * -1) == -1:
+                    if should_print:
                         print('X won \n')
                     value = -1
-                if (root.game.player * -1) == 1:
-                    if worker == 1:
+                if (game.player * -1) == 1:
+                    if should_print:
                         print('O won \n')
                     value = 1
                     
                 # Mark game as done
                 done = True
-            
-            # Increase the total moves
-            move_count += 1
         
         # Store the board policy value tuple (used for training)
         for index, data in enumerate(states):
@@ -177,31 +183,28 @@ class Simulation:
         # Store games as a side-effect (because of multiprocessing)
         simulation.memory.remember(states_values, game_nr)
 
-        print(f'Worker {worker} done!')
-
     @staticmethod
-    def console_print(game_nr, root, policy, net):
+    def console_print(game_nr, game, policy, net, time_per_move, q_value):
         """
         Log status to the console
         """
         # Predict the policy and value of the board state
-        policy_estimate, value_estimate = net.model.predict(np.array([root.game.encoded()]))
+        policy_estimate, value_estimate = net.predict(game.encoded())
 
         policy_print      = ['{:.2f}'.format(value) for value in policy]
-        policy_pred_print = ['{:.2f}'.format(value) for value in policy_estimate[0]]
+        policy_pred_print = ['{:.2f}'.format(value) for value in policy_estimate]
 
-        print(f'Game: {game_nr}', 'Move:', '\033[95mX\033[0m (-1)' if root.game.player == 1 else '\033[92mO\033[0m (1)', '\n')
+        print(f'Game: {game_nr}', 'Move:', '\033[95mX\033[0m' if game.player == 1 else '\033[92mO\033[0m', f'({round(time_per_move)} ms)', '\n')
 
-        print('Policy:     ', ' | '.join(policy_print))
-        print('Policy pred:', ' | '.join(policy_pred_print), '\n')
+        # print('Value:  ', round(value_estimate, 2),)
+        print('Q value:', round(q_value, 2), '\n')
+        print('Policy:      |', ' | '.join(policy_print), '|')
+        print('Policy pred: |', ' | '.join(policy_pred_print), '|\n')
 
-        print('Q Value:   ', round(root.total_value / root.parent.child_number_visits[root.move], 2))
-        print('Value pred:', round(value_estimate[0][0], 2), '\n')
-
-        root.game.presentation()
+        game.presentation()
         print()
 
-    def replay(self, iteration):
+    def replay(self):
         """
         Train the model by replaying from memory
         """
@@ -212,6 +215,8 @@ class Simulation:
         if not self.memory.filled:
             print(f'Memory not filled yet ({len(self.memory.memory)})')
             return
+        else:
+            print('Loaded memory of size:', len(self.memory.memory))
 
         from connect_net import ConnectNet
 
@@ -222,50 +227,11 @@ class Simulation:
             # Sample a minibatch
             boards, policies, values = self.memory.get_minibatch(self.minibatch_size)
 
-            print(values)
-
             # Train the model
-            net.model.fit(boards, [policies, values], batch_size=self.minibatch_size, shuffle=False, epochs=1)
+            net.model.fit(boards, [policies, values], batch_size=32, shuffle=False, epochs=1)
 
         # Save the network (historic)
-        net.save(iteration)
+        net.save(net.latest_iteration + 1)
 
         # Save the network (current)
         net.save('current')
-
-    def run(self):
-        """
-        Run the simulation
-        """
-        # Start at the latest game
-        game_nr = self.memory.latest_game + 1
-
-        # Keep track of the iteration for training
-        prev_iteration = (game_nr // self.games_per_iteration)
-
-        print('Iteration', prev_iteration)
-
-        # Start a pool of workers
-        with Pool(processes=self.workers) as pool:
-            while True:
-                # Distribute multiple self play instances over the pool of workers
-                pool.starmap(Simulation.self_play, zip(repeat(self), repeat(game_nr), range(self.games_per_pool)))
-                
-                # Increase the current game number
-                game_nr = self.memory.latest_game + 1
-
-                iteration = (game_nr // self.games_per_iteration)
-
-                print('Iteration', iteration)
-
-                self.replay(iteration=iteration)
-
-                # When arriving at a new iteration, retrain the network
-                if iteration > prev_iteration:
-                    # Train the model on self play games
-                    self.replay(iteration=iteration)
-
-                    # Update previous iteration
-                    prev_iteration = iteration
-
-                    # Dual against best

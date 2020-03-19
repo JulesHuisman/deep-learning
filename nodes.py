@@ -19,7 +19,7 @@ class Node:
     Used for Monte Carlo Tree Search.
     https://github.com/plkmo/AlphaZero_Connect4/blob/master/src/MCTS_c4.py
     """
-    def __init__(self, game, move, depth=0, parent=None):
+    def __init__(self, game, move=None, depth=0, parent=DummyNode()):
         # Game state
         self.game = game
         
@@ -99,19 +99,9 @@ class Node:
             
         return current
     
-    def add_dirichlet_noise(self):
-        """
-        Add noise to the child priors.
-        This adds to randomness to the process
-        """
-        valid_child_priors = self.child_priors[self.legal_moves]
-        valid_child_priors = 0.75 * valid_child_priors + 0.25 * np.random.dirichlet(np.zeros([len(valid_child_priors)], dtype=np.float32) + 192)
-        self.child_priors[self.legal_moves] = valid_child_priors
-    
     def expand(self, child_priors):
         """
-        MCTS expand action.
-        This adds the children to the current node.
+        Expand the current node, add the child priors from the neural network.
         """
         # Set expanded flag to true
         self.expanded = True
@@ -143,31 +133,21 @@ class Node:
             
         return self.children[move]
     
-    def backup(self, value_estimate):
+    def backprop(self, value_estimate):
         """
-        MCTS backup action.
         Go back up the tree and increase visits and adjust value of all parent nodes.
         """
         current = self
 
-        # While not back at the root
+        # Go back up the tree until back at the root
         while current.parent is not None:
             # Add one visit to the node
             current.number_visits += 1
             
-            if current.game.player == -1:
-                current.total_value += (1 * value_estimate)
-            elif current.game.player == 1:
-                current.total_value += (-1 * value_estimate)
+            if current.game.player == 1:
+                current.total_value += (1 * value_estimate)  # value estimate +1 = O wins
+            elif current.game.player == -1:
+                current.total_value += (-1 * value_estimate)  # value estimate -1 = O wins
                 
-            # Traverse up the tree
+            # Back up the tree
             current = current.parent
-
-def print_tree(node, _prefix="", _last=True):
-    print(_prefix, "`- " if _last else "|- ", node.move, ' | ', '{:.2f}'.format(node.total_value), sep="")
-
-    _prefix += "   " if _last else "|  "
-
-    for child in node.children.values():
-        _last = len(child.children) == 0
-        print_tree(child, _prefix, _last)

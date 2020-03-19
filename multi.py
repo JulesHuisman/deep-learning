@@ -1,41 +1,47 @@
-from multiprocessing import Pool, TimeoutError
-import time
-import os
+from game import Game
+from connect_net import ConnectNet
+from nodes import DummyNode, Node
+from simulation import Simulation
+from memory import Memory
+import numpy as np
 
-def f(x):
-    return x*x
+MODEL = 'DeepFour-V2'
 
-if __name__ == '__main__':
-    # start 4 worker processes
-    with Pool(processes=4) as pool:
+np.set_printoptions(precision=3)
 
-        # print "[0, 1, 4,..., 81]"
-        print(pool.map(f, range(10)))
+memory = Memory(folder=f'data/{MODEL}/memory', size=80000)
+memory.load_memories()
 
-        # print same numbers in arbitrary order
-        for i in pool.imap_unordered(f, range(10)):
-            print(i)
+print('Memory size:', len(memory.memory))
 
-        # evaluate "f(20)" asynchronously
-        res = pool.apply_async(f, (20,))      # runs in *only* one process
-        print(res.get(timeout=1))             # prints "400"
+values = [value for board, policy, value in memory.memory]
+print('Average value:', np.mean(values))
 
-        # evaluate "os.getpid()" asynchronously
-        res = pool.apply_async(os.getpid, ()) # runs in *only* one process
-        print(res.get(timeout=1))             # prints the PID of that process
+for training in range(10):
+    boards, policies, values = memory.get_minibatch(1024)
+    print(np.mean(policies, 0))
 
-        # launching multiple evaluations asynchronously *may* use more processes
-        multiple_results = [pool.apply_async(os.getpid, ()) for i in range(4)]
-        print([res.get(timeout=1) for res in multiple_results])
+zero = ConnectNet(MODEL)
+# zero.load(0)
 
-        # make a single worker sleep for 10 secs
-        res = pool.apply_async(time.sleep, (10,))
-        try:
-            print(res.get(timeout=1))
-        except TimeoutError:
-            print("We lacked patience and got a multiprocessing.TimeoutError")
+for training in range(10):
+    # Sample a minibatch
+    boards, policies, values = memory.get_minibatch(1024)
 
-        print("For the moment, the pool remains available for more work")
+    print('Average value:', np.mean(values))
 
-    # exiting the 'with'-block has stopped the pool
-    print("Now the pool is closed and no longer available")
+    # Train the model
+    zero.model.fit(boards, [policies, values], batch_size=32, shuffle=False, epochs=1)
+
+zero.save('current')
+
+# The simulation environment
+simulation = Simulation(net_name=MODEL,
+                        games_per_iteration=64,
+                        moves_per_game=300,
+                        memory_size=80000,
+                        minibatch_size=256,
+                        training_loops=10,
+                        workers=16)
+
+Simulation.self_play(simulation, 0)
