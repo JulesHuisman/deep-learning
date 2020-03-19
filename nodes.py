@@ -19,7 +19,10 @@ class Node:
     Used for Monte Carlo Tree Search.
     https://github.com/plkmo/AlphaZero_Connect4/blob/master/src/MCTS_c4.py
     """
-    def __init__(self, game, move=None, depth=0, parent=DummyNode()):
+    def __init__(self, game, player_from_root, move=None, parent=DummyNode()):
+        # Player seen from the root node of the tree (1) self, (-1) opponent
+        self.player_from_root = player_from_root
+
         # Game state
         self.game = game
         

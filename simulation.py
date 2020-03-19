@@ -37,7 +37,11 @@ class Simulation:
         self.memory = Memory(folder=f'data/{self.net_name}/memory', size=memory_size)
 
     @staticmethod
-    def mcts(root, moves_per_game, net):
+    def add_noise(priors):
+        return 0.75 * priors + 0.25 * np.random.dirichlet(np.zeros([len(priors)], dtype=np.float32) + 192)
+
+    @staticmethod
+    def mcts(root, moves_per_game, net, add_noise=False):
         """
         Perform one Monte Carlo Tree Search.
         Decides the next play.
@@ -48,7 +52,8 @@ class Simulation:
 
             # If the leaf is a winning state
             if leaf.game.won():
-                leaf.backprop(leaf.game.player)
+                # leaf.backprop(leaf.game.player)
+                leaf.backprop(1)
                 continue
 
             # If the leaf is a draw
@@ -61,6 +66,11 @@ class Simulation:
             
             # Predict the policy and value of the board state
             policy_estimate, value_estimate = net.predict(encoded_board)
+            
+            # Add dirichlet noise to add randomness to the process
+            if add_noise:
+                policy_estimate = Simulation.add_noise(policy_estimate)
+
             # policy_estimate, value_estimate = softmax(np.random.uniform(.3, .7, size=(7))), np.tanh(np.random.uniform(-.5, .5))
                 
             leaf.expand(policy_estimate)
@@ -122,7 +132,7 @@ class Simulation:
             start = time.time()
 
             # Root of the search tree is the current move
-            root = Node(game=game)
+            root = Node(game=game, player_from_root=1)
             
             # Explore for the first 10 moves, after that exploit
             if move_count <= 10:
@@ -134,7 +144,7 @@ class Simulation:
             encoded_board = deepcopy(game.encoded())
             
             # Run UCT search
-            root = Simulation.mcts(root, simulation.moves_per_game, net)
+            root = Simulation.mcts(root, simulation.moves_per_game, net, add_noise=True)
             
             # Get the next policy
             policy = Simulation.get_policy(root, temperature)

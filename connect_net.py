@@ -171,6 +171,7 @@ class ConnectNet:
         """Load model weights"""
         try:
             self.model.load_weights(os.path.join('data', self.name, 'models', self.name + '-' + str(postfix) + '.h5'))
+            self.version = postfix
             if log:
                 print(f'Loaded network: \033[94m{self.name + "-" + str(postfix)}\033[0m')
         except:

@@ -33,10 +33,8 @@ class Play:
                 # Run MCTS
                 root = Simulation.mcts(root, 1000, self.net)
 
-                # Get the playing policy based on the child visits
-                policy = Simulation.get_policy(root, 0.1)
-
-                move = np.argmax(policy)
+                # Move to the node with the most visits
+                move = np.argmax(root.child_number_visits)
             else:
                 while True:
                     try:
