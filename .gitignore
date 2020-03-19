@@ -1,3 +1,10 @@
+data/*
+!data/DeepFour-V2
+data/DeepFour-V2/*
+!data/DeepFour-V2/models
+data/DeepFour-V2/models/*
+!data/DeepFour-V2/models/DeepFour-V2-current.h5
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -123,9 +130,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-# Metaflow
-.metaflow/
-
-# Vs
-.vscode/
