@@ -14,6 +14,9 @@ class Memory:
         if not os.path.exists(self.folder):
             os.makedirs(self.folder)
 
+        # Load board positions into RAM
+        self.load_memories()
+
     @property
     def filled(self):
         """Is the memory filled up?"""

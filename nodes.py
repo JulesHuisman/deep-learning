@@ -19,12 +19,12 @@ class Node:
     Used for Monte Carlo Tree Search.
     https://github.com/plkmo/AlphaZero_Connect4/blob/master/src/MCTS_c4.py
     """
-    def __init__(self, game, player_from_root, move=None, parent=DummyNode()):
-        # Player seen from the root node of the tree (1) self, (-1) opponent
-        self.player_from_root = player_from_root
-
+    def __init__(self, game, depth=0, move=None, parent=DummyNode()):
         # Game state
         self.game = game
+
+        # Depth of the nodes
+        self.depth = depth
         
         # Index of the move (1-7)
         self.move = move
@@ -43,10 +43,20 @@ class Node:
         
         # Possible moves to take from this node
         self.legal_moves = []
-
-        # Keep track of the depth of this game state
-        self.depth = depth
         
+    def add_noise(self):
+        """
+        Add noise to the child priors
+        """
+        # Select the valid children
+        valid_child_priors = self.child_priors[self.legal_moves]
+
+        # Add noise
+        return 0.80 * valid_child_priors + 0.20 * np.random.dirichlet(np.zeros([len(valid_child_priors)], dtype=np.float32) + 192)
+
+        # Update with noise
+        self.child_priors[self.legal_moves] = valid_child_priors
+
     @property
     def number_visits(self):
         """How many times has this node been visited"""
@@ -102,7 +112,7 @@ class Node:
             
         return current
     
-    def expand(self, child_priors):
+    def expand(self, child_priors, add_noise=False):
         """
         Expand the current node, add the child priors from the neural network.
         """
@@ -119,6 +129,10 @@ class Node:
         
         # Mask all illegal actions
         self.child_priors[[i for i in range(len(self.child_priors)) if i not in self.legal_moves]] = 0.000000000
+
+        # Add noise
+        if add_noise:
+            self.add_noise()
     
     def maybe_add_child(self, move):
         """
@@ -132,7 +146,7 @@ class Node:
             game.play(move)
             
             # Add the child
-            self.children[move] = Node(game, move, parent=self, depth=(self.depth + 1))
+            self.children[move] = Node(game, move=move, parent=self, depth=(self.depth + 1))
             
         return self.children[move]
     
@@ -146,11 +160,13 @@ class Node:
         while current.parent is not None:
             # Add one visit to the node
             current.number_visits += 1
-            
-            if current.game.player == 1:
-                current.total_value += (1 * value_estimate)  # value estimate +1 = O wins
-            elif current.game.player == -1:
-                current.total_value += (-1 * value_estimate)  # value estimate -1 = O wins
-                
+
+            # At depth of opponent
+            if self.depth % 2 == 0:
+                current.total_value -= value_estimate
+            # At depth of current player
+            else:
+                current.total_value += value_estimate
+
             # Back up the tree
             current = current.parent

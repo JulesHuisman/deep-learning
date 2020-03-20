@@ -10,6 +10,8 @@ from memory import Memory
 
 from copy import deepcopy
 from scipy.special import softmax
+from itertools import cycle
+from random import shuffle
 
 np.set_printoptions(precision=2, suppress=True, linewidth=150)
 
@@ -38,7 +40,7 @@ class Simulation:
 
     @staticmethod
     def add_noise(priors):
-        return 0.75 * priors + 0.25 * np.random.dirichlet(np.zeros([len(priors)], dtype=np.float32) + 192)
+        return 0.80 * priors + 0.20 * np.random.dirichlet(np.zeros([len(priors)], dtype=np.float32) + 192)
 
     @staticmethod
     def mcts(root, moves_per_game, net, add_noise=False):
@@ -50,32 +52,36 @@ class Simulation:
             # Select the best leaf (exploit or explore)
             leaf = root.select_leaf()
 
-            # If the leaf is a winning state
-            if leaf.game.won():
-                # leaf.backprop(leaf.game.player)
-                leaf.backprop(1)
-                continue
+            # # If the leaf is a winning state
+            # if leaf.game.won():
+            #     print('Root value before', root.child_total_value)
+            #     # print('Game Player:', leaf.game.player, 'Leaf player', leaf.player, 'Final leaf state:')
+            #     print('Depth at leaf:', leaf.depth, 'Move of leaf:', leaf.move)
+            #     leaf.game.presentation()
 
-            # If the leaf is a draw
-            if leaf.game.moves() == []:
-                leaf.backprop(0)
-                continue
+            #     leaf.backprop(1)
+            #     print('Root value after', root.child_total_value)
+            #     continue
+
+            # # If the leaf is a draw
+            # if leaf.game.moves() == []:
+            #     leaf.backprop(0)
+            #     continue
             
             # Encode the board for the connect net
             encoded_board = leaf.game.encoded()
             
             # Predict the policy and value of the board state
             policy_estimate, value_estimate = net.predict(encoded_board)
+            # policy_estimate, value_estimate = softmax(np.random.uniform(.3, .7, size=(7))), np.tanh(np.random.uniform(-.4, .4))
+        
+            if leaf.game.won() or leaf.game.moves() == []:
+                leaf.backprop(value_estimate)
+            else:
+                leaf.expand(policy_estimate, add_noise)
+                leaf.backprop(value_estimate)
             
-            # Add dirichlet noise to add randomness to the process
-            if add_noise:
-                policy_estimate = Simulation.add_noise(policy_estimate)
-
-            # policy_estimate, value_estimate = softmax(np.random.uniform(.3, .7, size=(7))), np.tanh(np.random.uniform(-.5, .5))
-                
-            leaf.expand(policy_estimate)
-            leaf.backprop(value_estimate)
-            
+        # print('Root value', root.child_total_value)
         return root
 
     @staticmethod
@@ -115,7 +121,7 @@ class Simulation:
 
         # # Perform self play with the latest neural network
         net = ConnectNet(simulation.net_name, only_predict=True)
-        net.load('current', False)
+        net.load('current', should_print)
         # net = None
 
         # Create a new empty game
@@ -123,16 +129,16 @@ class Simulation:
         
         states        = []  # Storage for all game states
         states_values = []  # Storage for all game states with game outcome
-        value         = 0
         move_count    = 0
         done          = False
         
         # Keep playing while the game is not done
-        while not done and game.moves() != []:
-            start = time.time()
-
+        while not done:
             # Root of the search tree is the current move
-            root = Node(game=game, player_from_root=1)
+            root = Node(game=game)
+
+            if should_print:
+                print(f'Game: {game_nr}', 'Move:', '\033[95mX\033[0m' if game.player == -1 else '\033[92mO\033[0m', '\n')
             
             # Explore for the first 10 moves, after that exploit
             if move_count <= 10:
@@ -160,56 +166,63 @@ class Simulation:
         
             # Log status to the console
             if should_print:
-                time_per_move = (time.time() - start) * 1000
                 q_value = (root.child_Q()[move] * game.player * -1)
-                Simulation.console_print(game_nr, game, policy, net, time_per_move, q_value)
+                Simulation.console_print(game_nr, game, policy, net, q_value)
             
             # Store the intermediate state
             states.append((encoded_board, policy))
             
             # If somebody won
             if game.won():
-
                 if (game.player * -1) == -1:
                     if should_print:
-                        print('X won \n')
-                    value = -1
+                        print('\033[95mX Won!\033[0m \n')
                 if (game.player * -1) == 1:
                     if should_print:
-                        print('O won \n')
-                    value = 1
+                        print('\033[92mO Won!\033[0m \n')
+
+                value = 1
+
+                # Store board states for training (alternate )
+                for state in states[:0:-1]:
+                    states_values.append((state[0], state[1], value))
+                    value *= -1
+
+                # Empty board has no value
+                states_values.append((states[0][0], states[0][1], 0))
                     
                 # Mark game as done
                 done = True
-        
-        # Store the board policy value tuple (used for training)
-        for index, data in enumerate(states):
-            # Value is zero for an empty board
-            if index == 0:
-                states_values.append((data[0], data[1], 0))
-            else:
-                states_values.append((data[0], data[1], value))
+
+            # Game was a draw
+            elif game.moves() == []:
+                if should_print:
+                    print('Draw! \n')
+
+                # Set all values to 0
+                for state in states:
+                    states_values.append((state[0], state[1], 0))
+
+                done = True
 
         # Store games as a side-effect (because of multiprocessing)
-        simulation.memory.remember(states_values, game_nr)
+        simulation.memory.remember(states_values[::-1], game_nr)
 
     @staticmethod
-    def console_print(game_nr, game, policy, net, time_per_move, q_value):
+    def console_print(game_nr, game, policy, net, q_value):
         """
         Log status to the console
         """
         # Predict the policy and value of the board state
-        policy_estimate, value_estimate = net.predict(game.encoded())
+        # policy_estimate, value_estimate = net.predict(game.encoded())
 
         policy_print      = ['{:.2f}'.format(value) for value in policy]
-        policy_pred_print = ['{:.2f}'.format(value) for value in policy_estimate]
-
-        print(f'Game: {game_nr}', 'Move:', '\033[95mX\033[0m' if game.player == 1 else '\033[92mO\033[0m', f'({round(time_per_move)} ms)', '\n')
+        # policy_pred_print = ['{:.2f}'.format(value) for value in policy_estimate]
 
         # print('Value:  ', round(value_estimate, 2),)
         print('Q value:', round(q_value, 2), '\n')
         print('Policy:      |', ' | '.join(policy_print), '|')
-        print('Policy pred: |', ' | '.join(policy_pred_print), '|\n')
+        # print('Policy pred: |', ' | '.join(policy_pred_print), '|\n')
 
         game.presentation()
         print()
@@ -245,3 +258,76 @@ class Simulation:
 
         # Save the network (current)
         net.save('current')
+
+    # # @staticmethod
+    # def duel(simulation):
+        """
+        Let two models dual to see which one is better.
+        """
+        print(5)
+        return 5
+        # from connect_net import ConnectNet
+
+        # current = ConnectNet(simulation.net_name)
+        # current.load('current')
+
+        # best = ConnectNet(simulation.net_name)
+        # best.load('best')
+
+        # # Take turns playing
+        # nets = [current, best]
+        # shuffle(nets)
+        # turns = cycle(nets)
+        
+        # # Create a new empty game
+        # game       = Game()
+        # done       = False
+        # move_count = 0
+        
+        # while not done and game.moves() != []:
+        #     net = next(turns)
+            
+        #     # Create a new root node
+        #     root = Node(game=game)
+            
+        #     # Encoded board
+        #     # encoded_board = deepcopy(game.encoded())
+                
+        #     # Run MCTS
+        #     root = Simulation.mcts(root, simulation.moves_per_game, net)
+            
+        #     # Get the next policy
+        #     temperature = 1 if move_count <= 3 else 0.1
+        #     policy = Simulation.get_policy(root, temperature)
+            
+        #     print('Turn for:', net.version)
+        #     # print('Visits:    ', root.child_number_visits, '\n')
+        #     # print('Policy:    ', policy)
+            
+        #     # policy_pred, value_pred = net.predict(encoded_board)
+            
+        #     # print('Net policy:', policy_pred)
+        #     # print('Value pred:', value_pred)
+
+        #     # Decide the next move based on the policy
+        #     move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
+            
+        #     # print('Q value:   ', root.child_Q()[move], '\n')
+            
+        #     # Make the move
+        #     game.play(move)
+            
+        #     # game.presentation()
+        #     # print()
+            
+        #     # If somebody won
+        #     if game.won():
+        #         # print('Winner', net.version)
+        #         return net.version
+                        
+        #         # Mark game as done
+        #         done = True
+                
+        #     move_count += 1
+            
+        # return 'draw'

@@ -5,7 +5,7 @@ from simulation import Simulation
 from memory import Memory
 import numpy as np
 
-MODEL = 'DeepFour-V2'
+MODEL = 'DeepFour-V1'
 
 # np.set_printoptions(precision=3)
 
@@ -38,10 +38,11 @@ MODEL = 'DeepFour-V2'
 # The simulation environment
 simulation = Simulation(net_name=MODEL,
                         games_per_iteration=64,
-                        moves_per_game=300,
+                        moves_per_game=256,
                         memory_size=80000,
                         minibatch_size=256,
                         training_loops=10,
                         workers=16)
 
-Simulation.self_play(simulation, 0)
+# Simulation.self_play(simulation, 0)
+Simulation.dual(simulation)

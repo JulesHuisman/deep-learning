@@ -131,7 +131,7 @@ class ConnectNet:
         model = Model(inputs=[board_input], outputs=[policy, value])
 
         # Compile
-        model.compile(optimizer=Adam(0.00025), loss={'value': 'mse', 'policy': softmax_cross_entropy_with_logits})
+        model.compile(optimizer=Adam(0.001), loss={'value': 'mse', 'policy': softmax_cross_entropy_with_logits})
         # model.compile(optimizer=SGD(0.1, 0.9), loss={'value': 'mse', 'policy': softmax_cross_entropy_with_logits})
 
         # Set the model name
