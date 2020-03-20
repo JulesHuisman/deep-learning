@@ -206,7 +206,7 @@ class Simulation:
                 done = True
 
         # Store games as a side-effect (because of multiprocessing)
-        simulation.memory.remember(states_values[::-1], game_nr)
+        # simulation.memory.remember(states_values[::-1], game_nr)
 
     @staticmethod
     def console_print(game_nr, game, policy, net, q_value):
@@ -214,15 +214,15 @@ class Simulation:
         Log status to the console
         """
         # Predict the policy and value of the board state
-        # policy_estimate, value_estimate = net.predict(game.encoded())
+        policy_estimate, value_estimate = net.predict(game.encoded())
 
         policy_print      = ['{:.2f}'.format(value) for value in policy]
-        # policy_pred_print = ['{:.2f}'.format(value) for value in policy_estimate]
+        policy_pred_print = ['{:.2f}'.format(value) for value in policy_estimate]
 
-        # print('Value:  ', round(value_estimate, 2),)
-        print('Q value:', round(q_value, 2), '\n')
+        print('Q value:    ', round(q_value, 2))
+        print('Value pred: ', round(value_estimate, 2), '\n')
         print('Policy:      |', ' | '.join(policy_print), '|')
-        # print('Policy pred: |', ' | '.join(policy_pred_print), '|\n')
+        print('Policy pred: |', ' | '.join(policy_pred_print), '|\n')
 
         game.presentation()
         print()

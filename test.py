@@ -44,5 +44,5 @@ simulation = Simulation(net_name=MODEL,
                         training_loops=10,
                         workers=16)
 
-# Simulation.self_play(simulation, 0)
-Simulation.dual(simulation)
+Simulation.self_play(simulation, 0)
+# Simulation.dual(simulation)
