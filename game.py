@@ -9,6 +9,7 @@ class Game:
         self.empty = np.zeros((6, 7)).astype(int)
         self.board = self.empty.copy()
         self.player = [-1, 1][np.random.randint(2)]
+        # self.player = 1
 
     def play(self, col):
         # Don't play if the column is full

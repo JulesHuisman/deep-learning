@@ -99,7 +99,7 @@ class ConnectNet:
         res_6 = ResBlock(res_5, self.filters, self.l2_reg)
 
         # Policy head
-        policy_conv = Conv2D(2, (1, 1), use_bias=False, kernel_regularizer=l2(self.l2_reg))(res_6)
+        policy_conv = Conv2D(32, (1, 1), use_bias=False, kernel_regularizer=l2(self.l2_reg))(res_6)
         policy_norm = BatchNormalization()(policy_conv)
         policy_relu = ReLU()(policy_norm)
         policy_flat = Flatten()(policy_relu)
@@ -112,7 +112,7 @@ class ConnectNet:
                        kernel_regularizer=l2(self.l2_reg))(policy_flat)
 
         # Value head
-        value_conv   = Conv2D(1, (1, 1), use_bias=False, kernel_regularizer=l2(self.l2_reg))(res_5)
+        value_conv   = Conv2D(32, (1, 1), use_bias=False, kernel_regularizer=l2(self.l2_reg))(res_5)
         value_norm   = BatchNormalization()(value_conv)
         value_relu_1 = ReLU()(value_norm)
         value_flat   = Flatten()(value_relu_1)

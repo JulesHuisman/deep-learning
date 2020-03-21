@@ -15,7 +15,7 @@ class Memory:
             os.makedirs(self.folder)
 
         # Load board positions into RAM
-        self.load_memories()
+        # self.load_memories()
 
     @property
     def filled(self):

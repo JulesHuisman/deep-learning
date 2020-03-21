@@ -38,11 +38,12 @@ MODEL = 'DeepFour-V1'
 # The simulation environment
 simulation = Simulation(net_name=MODEL,
                         games_per_iteration=64,
-                        moves_per_game=256,
+                        moves_per_game=512,
                         memory_size=80000,
                         minibatch_size=256,
                         training_loops=10,
-                        workers=16)
+                        workers=16,
+                        duel_threshold=0.60)
 
 Simulation.self_play(simulation, 0)
 # Simulation.dual(simulation)

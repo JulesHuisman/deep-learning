@@ -1,9 +1,9 @@
 data/*
-!data/DeepFour-V2
-data/DeepFour-V2/*
-!data/DeepFour-V2/models
-data/DeepFour-V2/models/*
-!data/DeepFour-V2/models/DeepFour-V2-current.h5
+!data/DeepFour-V1
+data/DeepFour-V1/*
+!data/DeepFour-V1/models
+data/DeepFour-V1/models/*
+!data/DeepFour-V1/models/DeepFour-V1-checkpoint.h5
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

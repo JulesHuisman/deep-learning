@@ -3,7 +3,13 @@ from game import Game
 from connect_net import ConnectNet
 from nodes import DummyNode, Node
 
+import argparse
 import numpy as np
+
+parser = argparse.ArgumentParser(description='Play a game against the AI')
+parser.add_argument('--version', metavar='version', type=str, default='checkpoint', help='Version of the AI to play against')
+
+args = parser.parse_args()
 
 class Play:
     def __init__(self, game, net):
@@ -31,7 +37,7 @@ class Play:
             if self.game.player == -1:
 
                 # Run MCTS
-                root = Simulation.mcts(root, 1000, self.net)
+                root = Simulation.mcts(root, 512, self.net)
 
                 # Move to the node with the most visits
                 move = np.argmax(root.child_number_visits)
@@ -63,8 +69,8 @@ class Play:
 
 if __name__ == '__main__':
     game = Game()
-    net = ConnectNet('DeepFour-V2')
-    net.load('current')
+    net = ConnectNet('DeepFour-V1')
+    net.load(args.version)
     
     play = Play(game, net)
     play.start()

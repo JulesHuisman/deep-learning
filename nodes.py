@@ -43,19 +43,6 @@ class Node:
         
         # Possible moves to take from this node
         self.legal_moves = []
-        
-    def add_noise(self):
-        """
-        Add noise to the child priors
-        """
-        # Select the valid children
-        valid_child_priors = self.child_priors[self.legal_moves]
-
-        # Add noise
-        return 0.80 * valid_child_priors + 0.20 * np.random.dirichlet(np.zeros([len(valid_child_priors)], dtype=np.float32) + 192)
-
-        # Update with noise
-        self.child_priors[self.legal_moves] = valid_child_priors
 
     @property
     def number_visits(self):
@@ -86,7 +73,7 @@ class Node:
     
     def child_U(self):
         """The U value of the children"""
-        return sqrt(self.number_visits) * (abs(self.child_priors) / (1 + self.child_number_visits))
+        return (2 * sqrt(self.number_visits) * (abs(self.child_priors)) / (1 + self.child_number_visits))
     
     def best_child(self):
         """
@@ -112,7 +99,7 @@ class Node:
             
         return current
     
-    def expand(self, child_priors, add_noise=False):
+    def expand(self, child_priors):
         """
         Expand the current node, add the child priors from the neural network.
         """
@@ -129,10 +116,6 @@ class Node:
         
         # Mask all illegal actions
         self.child_priors[[i for i in range(len(self.child_priors)) if i not in self.legal_moves]] = 0.000000000
-
-        # Add noise
-        if add_noise:
-            self.add_noise()
     
     def maybe_add_child(self, move):
         """
@@ -161,12 +144,24 @@ class Node:
             # Add one visit to the node
             current.number_visits += 1
 
-            # At depth of opponent
-            if self.depth % 2 == 0:
-                current.total_value -= value_estimate
-            # At depth of current player
-            else:
-                current.total_value += value_estimate
+            # The value for the parent is the inverse of this node
+            current.total_value -= value_estimate
+
+            # Value alternates between nodes, what is a good move for O is a bad move for X
+            value_estimate *= -1
+
+            # # At depth of opponent
+            # if self.depth % 2 == 0:
+            #     current.total_value -= value_estimate
+            # # At depth of current player
+            # else:
+            #     current.total_value -= value_estimate
 
             # Back up the tree
             current = current.parent
+
+    @property
+    def stats(self):
+        return {
+            'Value estimate', 
+        }

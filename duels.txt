@@ -1,0 +1,17 @@
+0.53125
+0.5625
+0.8125
+0.46875
+0.28125
+0.46875
+0.4375
+0.375
+0.25
+0.6774193548387096
+checkpoint checkpoint best best checkpoint checkpoint checkpoint checkpoint checkpoint checkpoint checkpoint checkpoint best checkpoint best checkpoint best best checkpoint best draw best checkpoint best checkpoint checkpoint checkpoint checkpoint checkpoint checkpoint best checkpoint
+0.5666666666666667
+best best checkpoint checkpoint best checkpoint checkpoint best best checkpoint best checkpoint best best checkpoint draw checkpoint best checkpoint best checkpoint checkpoint checkpoint checkpoint draw checkpoint best checkpoint checkpoint best checkpoint best
+0.35714285714285715
+best best best checkpoint checkpoint draw checkpoint best checkpoint best best draw best best checkpoint checkpoint checkpoint best checkpoint draw best best checkpoint best best best best best draw best checkpoint best
+0.7333333333333333
+checkpoint checkpoint 0 checkpoint checkpoint checkpoint checkpoint checkpoint checkpoint 0 checkpoint checkpoint 0 0 checkpoint draw
