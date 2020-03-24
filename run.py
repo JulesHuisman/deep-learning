@@ -11,8 +11,8 @@ from shutil import copyfile
 if __name__ == '__main__':
 
     # The simulation environment
-    simulation = Simulation(net_name='DeepFour-V1',
-                            games_per_iteration=32,
+    simulation = Simulation(net_name='DeepFour-V2',
+                            games_per_iteration=64,
                             moves_per_game=256,
                             memory_size=100_000,
                             minibatch_size=1024,

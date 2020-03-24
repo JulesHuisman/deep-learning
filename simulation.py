@@ -135,7 +135,7 @@ class Simulation:
                 
                 # Explore for the first 10 moves, after that exploit
                 if move_count <= 10:
-                    temperature = 1
+                    temperature = 2
                 else:
                     temperature = 0.1
                 
@@ -252,7 +252,7 @@ class Simulation:
         # Save the network (current)
         net.save('checkpoint')
 
-    def duel(self):
+    def duel(self, first_net='checkpoint', second_net='best'):
         """
         Let two models dual to see which one is better.
         """
@@ -262,14 +262,14 @@ class Simulation:
 
         from connect_net import ConnectNet
 
-        checkpoint = ConnectNet(self.net_name)
-        checkpoint.load('checkpoint')
+        first = ConnectNet(self.net_name)
+        first.load(first_net)
 
-        best = ConnectNet(self.net_name)
-        best.load(0)
+        second = ConnectNet(self.net_name)
+        second.load(second_net)
 
         # Take turns playing
-        nets = [checkpoint, best]
+        nets = [first, second]
         shuffle(nets)
         turns = cycle(nets)
         
@@ -291,7 +291,7 @@ class Simulation:
             root = Simulation.mcts(root, self.moves_per_game, net)
             
             # Get the next policy
-            temperature = 1 if move_count <= 10 else 0.1
+            temperature = 1.3 if move_count <= 7 else 0.1
             policy = Simulation.get_policy(root, temperature)
             
             print('Turn for:', net.version)

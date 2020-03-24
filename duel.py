@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     # Create a pool of workers and execute the duels
     with ProcessPoolExecutor(max_workers=simulation.workers) as executor:
-        duels = [executor.submit(simulation.duel) for _ in range(16)]
+        duels = [executor.submit(simulation.duel, 'checkpoint', '1') for _ in range(16)]
 
         results = np.array([duel.result() for duel in duels])
         no_draws = results[results != 'draw']
@@ -33,6 +33,6 @@ if __name__ == '__main__':
         print('Final results no draws:', no_draws)
         print('Win rate:', winrate)
 
-        with open('duels.txt', 'a+') as file:
+        with open('duels-test.txt', 'a+') as file:
             file.write(str(winrate) + '\n')
             file.write(str(' '.join(results)) + '\n')
