@@ -1,0 +1,11 @@
+{
+    "model": "DeepFour-V2",
+    "workers": 4,
+    "search_depth": 256,
+    "memory_size": 100000,
+    "batch_size": 512,
+    "n_filters": 75,
+    "lr": 0.01,
+    "momentum": 0.9,
+    "l2_reg": 0.0001
+}
