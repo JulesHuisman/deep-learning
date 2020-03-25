@@ -6,11 +6,15 @@ from collections import deque
 
 class Memory:
     def __init__(self, config):
-        self.memory = deque(maxlen=config.memory_size)
+        self.config = config
 
+        # Memory is a double ended queue to quickly append items
+        self.memory = deque(maxlen=self.config.memory_size)
+
+        # The storage location
         self.folder = os.path.join('data', config.model, 'memory')
 
-        # Create a storage folder
+        # Create a storage folder (if does not exist)
         if not os.path.exists(self.folder):
             os.makedirs(self.folder)
 
@@ -54,11 +58,11 @@ class Memory:
                 except:
                     continue
 
-    def get_minibatch(self, size):
+    def get_minibatch(self):
         """
         Get a random minibatch from memory
         """
-        minibatch = sample(self.memory, size)
+        minibatch = sample(self.memory, self.config.batch_size)
 
         boards   = []
         policies = []

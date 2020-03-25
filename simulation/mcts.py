@@ -1,9 +1,11 @@
-def mcts(root, depth, net, add_noise=False):
+import numpy as np
+
+def mcts(root, search_depth, net, add_noise=False, noise_eps=0, dirichlet_alpha=0):
     """
     Perform one Monte Carlo Tree Search.
     Decides the next play.
     """
-    for _ in range(depth):
+    for _ in range(search_depth):
         # Select the best leaf (exploit or explore)
         leaf = root.select_leaf()
 
@@ -22,6 +24,10 @@ def mcts(root, depth, net, add_noise=False):
         
         # Predict the policy and value of the board state
         policy_estimate, value_estimate = net.predict(encoded_board)
+
+        # Possibly add dirichlet noise to the priors of the root node
+        if add_noise and (leaf == root):
+            policy_estimate = dirichlet_noise(policy_estimate, noise_eps, dirichlet_alpha)
     
         leaf.expand(policy_estimate)
         leaf.backprop(value_estimate)
@@ -29,8 +35,11 @@ def mcts(root, depth, net, add_noise=False):
     # Return the root with new information
     return root
 
-def add_noise():
-    pass
+def dirichlet_noise(priors, noise_eps, dirichlet_alpha):
+    """
+    Add dirichlet noise to the priors of the root noise to add some randomness to the process
+    """
+    return (1 - noise_eps) * priors + noise_eps * np.random.dirichlet([dirichlet_alpha] * len(priors))
 
 def get_policy(root, temperature):
     """

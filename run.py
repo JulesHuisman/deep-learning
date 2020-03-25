@@ -11,29 +11,36 @@ PATH = os.path.dirname(os.path.dirname(__file__))
 if PATH not in sys.path:
     sys.path.append(PATH)
 
-commands = ['self', 'opt', 'play']
+commands = ['self', 'opt', 'eval']
 
 def create_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('cmd', help='what to do', choices=commands)
+    parser.add_argument('process', help='What process to run', choices=commands)
     return parser
 
 parser = create_parser()
 args = parser.parse_args()
 
 config = Config()
+memory = Memory(config)
 
-if args.cmd == 'self':
+if args.process == 'self':
     from process.play import SelfPlayProcess
 
-    process = SelfPlayProcess(config, Memory(config))
+    process = SelfPlayProcess(config, memory)
 
     # Create a pool of workers and execute the self plays
     with ProcessPoolExecutor(max_workers=16) as executor:
-        _ = [executor.submit(process.play, log=(i == 0)) for i in range(config.workers)]
+        [executor.submit(process.play, log=(i == 0)) for i in range(config.workers)]
 
-elif args.cmd == 'opt':
-    from process import optimize
-    optimize.start(config)
-elif args.cmd == 'play':
-    pass
+elif args.process == 'opt':
+    from process.optimize import OptimizeProcess
+
+    process = OptimizeProcess(config, memory)
+    process.optimize()
+
+elif args.process == 'eval':
+    from process.evaluate import EvaluateProcess
+
+    process = EvaluateProcess(config)
+    process.evaluate()

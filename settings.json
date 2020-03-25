@@ -1,11 +1,17 @@
 {
     "model": "DeepFour-V2",
     "workers": 4,
-    "search_depth": 256,
+    "search_depth": 128,
+    "noise_eps": 0.1,
+    "dirichlet_alpha": 0.03,
     "memory_size": 100000,
     "batch_size": 512,
     "n_filters": 75,
-    "lr": 0.01,
+    "lr": 0.001,
     "momentum": 0.9,
-    "l2_reg": 0.0001
+    "l2_reg": 0.0002,
+    "checkpoint_steps": 100,
+    "update_steps": 1000,
+    "duel_games": 40,
+    "duel_threshold": 0.55
 }

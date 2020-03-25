@@ -155,29 +155,13 @@ class DeepFour:
         """Shows the structure of the network"""
         return plot_model(self.model, show_shapes=True, dpi=64)
 
-    @property
-    def latest_iteration(self):
-        """The latest iteration of the model"""
-        model_path = os.path.join('data', self.config.model, 'models')
-
-        version = 0
-
-        for filename in os.listdir(model_path):
-            if filename.endswith('.h5'):
-                try:
-                    version = int(filename.replace('-', '.').split('.')[2])
-                except:
-                    pass
-
-        return version
-
     def load(self, postfix, log=True):
         """Load model weights"""
         try:
-            self.model.load_weights(os.path.join('data', self.config.model, 'models', self.config.model + '-' + str(postfix) + '.h5'))
+            self.model.load_weights(os.path.join('data', self.config.model, 'models', self.config.model + '.' + str(postfix) + '.h5'))
             self.version = postfix
             if log:
-                print(f'Loaded network: \033[94m{self.config.model + "-" + str(postfix)}\033[0m')
+                print(f'Loaded network: \033[94m{self.config.model + "." + str(postfix)}\033[0m')
         except:
             if log:
                 print('\033[93mModel not found\033[0m')
@@ -187,7 +171,7 @@ class DeepFour:
         Store model weights
         """
         storage_location = os.path.join('data', self.config.model, 'models')
-        file_name = self.config.model + '-' + str(postfix) + '.h5'
+        file_name = self.config.model + '.' + str(postfix) + '.h5'
 
         # Create a storage folder
         if not os.path.exists(storage_location):

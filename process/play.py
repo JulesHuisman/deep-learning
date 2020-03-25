@@ -45,7 +45,7 @@ class SelfPlayProcess:
                 
                 # Explore for the first 10 moves, after that exploit
                 if move_count <= 10:
-                    temperature = 1.2
+                    temperature = 1.1
                 else:
                     temperature = 0.1
                 
@@ -53,7 +53,12 @@ class SelfPlayProcess:
                 encoded_board = deepcopy(game.encoded())
                 
                 # Run UCT search
-                root = mcts(root, self.config.search_depth, net, add_noise=True)
+                root = mcts(root,
+                            search_depth=self.config.search_depth,
+                            net=net,
+                            add_noise=True,
+                            noise_eps=self.config.noise_eps,
+                            dirichlet_alpha=self.config.dirichlet_alpha)
                 
                 # Get the next policy
                 policy = get_policy(root, temperature)
