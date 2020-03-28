@@ -7,6 +7,7 @@ from time import sleep, time
 from simulation.nodes import StateNode
 from simulation.game import Game
 from simulation.mcts import mcts, get_policy
+import mlflow
 
 np.set_printoptions(precision=2, suppress=True, linewidth=150)
 
@@ -25,6 +26,10 @@ class SelfPlayProcess:
         net = DeepFour(self.config, only_predict=True)
 
         while True:
+            if log:
+                # Store the number of games
+                mlflow.log_metric('n-games', self.memory.n_games())
+
             net.load('best', log)
 
             # Create a new empty game
@@ -38,13 +43,13 @@ class SelfPlayProcess:
             # Keep playing while the game is not done
             while not done:
                 # Root of the search tree is the current move
-                root = StateNode(game=game)
+                root = StateNode(game=game, c_puct=self.config.c_puct)
 
                 if log:
                     print('Move:', '\033[95mX\033[0m' if game.player == -1 else '\033[92mO\033[0m', '\n')
                 
                 # Explore for the first 10 moves, after that exploit
-                if move_count <= 10:
+                if move_count <= self.config.exploit_turns:
                     temperature = 1.1
                 else:
                     temperature = 0.1

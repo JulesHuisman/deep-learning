@@ -1,6 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import mlflow
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -17,7 +18,6 @@ class ResBlock:
         conv_1 = Conv2D(filters,
                         (4, 4),
                         padding='same',
-                        use_bias=False,
                         kernel_regularizer=l2(l2_reg))(inputs)
 
         norm_1 = BatchNormalization()(conv_1)
@@ -26,7 +26,6 @@ class ResBlock:
         conv_2 = Conv2D(filters,
                         (4, 4),
                         padding='same',
-                        use_bias=False,
                         kernel_regularizer=l2(l2_reg))(relu_1)
 
         norm_2 = BatchNormalization()(conv_2)
@@ -89,17 +88,14 @@ class DeepFour:
         conv_1 = Conv2D(self.config.n_filters, (4, 4), padding='same', kernel_regularizer=l2(self.config.l2_reg))(board_input)
         norm_1 = BatchNormalization()(conv_1)
         relu_1 = ReLU()(norm_1)
+        res = relu_1
 
         # Residual convolution blocks
-        res_1 = ResBlock(relu_1, self.config.n_filters, self.config.l2_reg)
-        res_2 = ResBlock(res_1, self.config.n_filters, self.config.l2_reg)
-        res_3 = ResBlock(res_2, self.config.n_filters, self.config.l2_reg)
-        res_4 = ResBlock(res_3, self.config.n_filters, self.config.l2_reg)
-        res_5 = ResBlock(res_4, self.config.n_filters, self.config.l2_reg)
-        res_6 = ResBlock(res_5, self.config.n_filters, self.config.l2_reg)
+        for _ in range(self.config.res_layers):
+            res = ResBlock(res, self.config.n_filters, self.config.l2_reg)
 
         # Policy head
-        policy_conv = Conv2D(32, (1, 1), use_bias=False, kernel_regularizer=l2(self.config.l2_reg))(res_6)
+        policy_conv = Conv2D(2, (1, 1), kernel_regularizer=l2(self.config.l2_reg))(res)
         policy_norm = BatchNormalization()(policy_conv)
         policy_relu = ReLU()(policy_norm)
         policy_flat = Flatten()(policy_relu)
@@ -108,40 +104,40 @@ class DeepFour:
         policy = Dense(7,
                        activation='softmax',
                        name='policy',
-                       use_bias=False,
                        kernel_regularizer=l2(self.config.l2_reg))(policy_flat)
 
         # Value head
-        value_conv   = Conv2D(32, (1, 1), use_bias=False, kernel_regularizer=l2(self.config.l2_reg))(res_5)
+        value_conv   = Conv2D(1, (1, 1), kernel_regularizer=l2(self.config.l2_reg))(res)
         value_norm   = BatchNormalization()(value_conv)
         value_relu_1 = ReLU()(value_norm)
         value_flat   = Flatten()(value_relu_1)
 
-        value_dense  = Dense(32, use_bias=False, kernel_regularizer=l2(self.config.l2_reg))(value_flat)
+        value_dense  = Dense(32, kernel_regularizer=l2(self.config.l2_reg))(value_flat)
         value_relu_2 = ReLU()(value_dense)
 
         # Value output
         value = Dense(1,
                       activation='tanh',
                       name='value',
-                      use_bias=False,
                       kernel_regularizer=l2(self.config.l2_reg))(value_relu_2)
 
         # Final model
         model = Model(inputs=[board_input], outputs=[policy, value])
 
         # Compile
-        model.compile(optimizer=SGD(self.config.lr, momentum=self.config.momentum), loss={'value': 'mse', 'policy': self.policy_loss})
+        model.compile(optimizer=SGD(0.01, momentum=0.9),
+                      loss={'value': 'mse', 'policy': softmax_cross_entropy_with_logits},
+                      metrics={'value': [self.mean]})
 
         # Set the model name
         model._name = self.config.model
         
         return model
 
-    @staticmethod
-    def policy_loss(y_true, y_pred):
-        import keras.backend as K
-        return K.sum(-y_true * K.log(y_pred + K.epsilon()), axis=-1)
+    def mean(self, y_true, y_pred):
+        """Custom metric that returns the mean value"""
+        from keras import backend as K
+        return K.mean(y_pred)
 
     def predict(self, board):
         """Predict policy and value based on an encoded board"""
@@ -154,6 +150,25 @@ class DeepFour:
         from keras.utils import plot_model
         """Shows the structure of the network"""
         return plot_model(self.model, show_shapes=True, dpi=64)
+
+    def update_lr(self, total_steps):
+        """
+        Use a learning rate schedule to lower the learning rate over time
+        https://github.com/Zeta36/connect4-alpha-zero/blob/master/src/connect4_zero/worker/optimize.py
+        """
+        import keras.backend as K
+
+        if total_steps < 500:
+            lr = 0.01
+        elif total_steps < 2000:
+            lr = 0.001
+        elif total_steps < 9000:
+            lr = 0.0001
+        else:
+            lr = 0.000025
+            
+        mlflow.log_metric('learning-rate', lr, total_steps)
+        K.set_value(self.model.optimizer.lr, lr)
 
     def load(self, postfix, log=True):
         """Load model weights"""

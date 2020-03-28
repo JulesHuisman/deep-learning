@@ -19,12 +19,9 @@ class StateNode:
     Used for Monte Carlo Tree Search.
     https://github.com/plkmo/AlphaZero_Connect4/blob/master/src/MCTS_c4.py
     """
-    def __init__(self, game, depth=0, move=None, parent=DummyNode()):
+    def __init__(self, game, c_puct, move=None, parent=DummyNode()):
         # Game state
         self.game = game
-
-        # Depth of the nodes
-        self.depth = depth
         
         # Index of the move (1-7)
         self.move = move
@@ -43,6 +40,9 @@ class StateNode:
         
         # Possible moves to take from this node
         self.legal_moves = []
+
+        # Exploration rate
+        self.c_puct = c_puct
 
     @property
     def number_visits(self):
@@ -73,7 +73,7 @@ class StateNode:
     
     def child_U(self):
         """The U value of the children"""
-        return (2 * sqrt(self.number_visits) * (abs(self.child_priors)) / (1 + self.child_number_visits))
+        return (self.c_puct * sqrt(self.number_visits) * (abs(self.child_priors)) / (1 + self.child_number_visits))
     
     def best_child(self):
         """
@@ -129,7 +129,7 @@ class StateNode:
             game.play(move)
             
             # Add the child
-            self.children[move] = StateNode(game, move=move, parent=self, depth=(self.depth + 1))
+            self.children[move] = StateNode(game, move=move, parent=self, c_puct=self.c_puct)
             
         return self.children[move]
     

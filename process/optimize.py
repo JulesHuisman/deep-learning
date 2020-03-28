@@ -1,7 +1,10 @@
 import os
+import numpy as np
+import mlflow
 
 from deepfour import DeepFour
 from time import sleep
+from process.evaluate import EvaluateProcess
 
 def is_int(s):
     try:
@@ -19,6 +22,7 @@ class OptimizeProcess:
         self.memory = memory
         self.checkpoint = DeepFour(config)
         self.checkpoint.load('checkpoint')
+        self.evaluate = EvaluateProcess(self.config)
 
     def optimize(self):
         checkpoint_steps = 0
@@ -30,13 +34,14 @@ class OptimizeProcess:
             print(f'Total steps: {total_steps} | Checkpoint steps: {checkpoint_steps} | Update steps: {update_steps} | Memory size: {len(self.memory.memory)}')
 
             # Not enough data yet
-            if len(self.memory.memory) < 50000:
+            if len(self.memory.memory) < self.config.memory_size:
+                # if len(self.memory.memory) < 100:
                 print(f'Not enough data yet ({len(self.memory.memory)})')
                 sleep(60)
                 self.memory.load_memories()
                 continue
 
-            self.train()
+            self.train(total_steps)
 
             total_steps += 1
             checkpoint_steps += 1
@@ -47,21 +52,33 @@ class OptimizeProcess:
                 self.checkpoint.save(self.last_version() + 1)
                 self.checkpoint.save('checkpoint')
                 self.memory.load_memories()
+
+                # Apply the learning rate schedule
+                self.checkpoint.update_lr(total_steps)
+
                 checkpoint_steps = 0
 
             # Create a new challenger every n steps
             if update_steps >= self.config.update_steps:
-                print('New challenger')
                 self.checkpoint.save('challenger')
+                self.evaluate.evaluate(loop=False)
                 update_steps = 0
 
-    def train(self):
+    def train(self, total_steps):
         """
         Train the model on one minibatch
         """
         boards, policies, values = self.memory.get_minibatch()
 
-        self.checkpoint.model.fit(boards, [policies, values], batch_size=self.config.batch_size, shuffle=False, epochs=1)
+        print('Average value:', np.mean(values))
+
+        history = self.checkpoint.model.fit(boards, [policies, values], batch_size=self.config.batch_size, shuffle=False, epochs=1)
+
+        # Log to mlflow
+        mlflow.log_metric('loss', np.mean(history.history['loss']), total_steps)
+        mlflow.log_metric('policy-loss', np.mean(history.history['policy_loss']), total_steps)
+        mlflow.log_metric('value-loss', np.mean(history.history['value_loss']), total_steps)
+        mlflow.log_metric('value-mean', np.mean(history.history['value_mean']), total_steps)
 
     def last_version(self):
         """

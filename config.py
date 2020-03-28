@@ -1,4 +1,5 @@
 import json
+import mlflow
 
 class Config:
     """
@@ -10,3 +11,14 @@ class Config:
 
             for key in settings:
                 setattr(self, key, settings[key])
+
+    def set_mlflow(self):
+        """
+        Store parameters in mlflow
+        """
+        with open('settings.json', 'r') as f:
+            settings = json.load(f)
+
+            for key in settings:
+                if key != 'model':
+                    mlflow.log_param(key, settings[key])

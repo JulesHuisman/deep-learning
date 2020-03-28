@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import mlflow
 
 from config import Config
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -24,23 +25,32 @@ args = parser.parse_args()
 config = Config()
 memory = Memory(config)
 
-if args.process == 'self':
-    from process.play import SelfPlayProcess
+mlflow.set_experiment('deepfour')
 
-    process = SelfPlayProcess(config, memory)
+with mlflow.start_run(run_name=config.model):
+    try:
+        config.set_mlflow()
 
-    # Create a pool of workers and execute the self plays
-    with ProcessPoolExecutor(max_workers=16) as executor:
-        [executor.submit(process.play, log=(i == 0)) for i in range(config.workers)]
+        if args.process == 'self':
+            from process.play import SelfPlayProcess
 
-elif args.process == 'opt':
-    from process.optimize import OptimizeProcess
+            process = SelfPlayProcess(config, memory)
 
-    process = OptimizeProcess(config, memory)
-    process.optimize()
+            # Create a pool of workers and execute the self plays
+            with ProcessPoolExecutor(max_workers=config.workers) as executor:
+                [executor.submit(process.play, log=(i == 0)) for i in range(config.workers)]
 
-elif args.process == 'eval':
-    from process.evaluate import EvaluateProcess
+        elif args.process == 'opt':
+            from process.optimize import OptimizeProcess
 
-    process = EvaluateProcess(config)
-    process.evaluate()
+            process = OptimizeProcess(config, memory)
+            process.optimize()
+
+        elif args.process == 'eval':
+            from process.evaluate import EvaluateProcess
+
+            process = EvaluateProcess(config)
+            process.evaluate()
+
+    except KeyboardInterrupt:
+        mlflow.end_run(status='FINISHED')

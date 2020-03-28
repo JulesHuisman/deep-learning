@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import mlflow
 
 from deepfour import DeepFour
 from simulation.game import Game
@@ -31,12 +32,14 @@ class EvaluateProcess:
         # Challenger location
         self.challenger_location = os.path.join(self.model_location, self.config.model + '.challenger.h5')
 
-    def evaluate(self):
+    def evaluate(self, loop=True):
         while True:
 
             # Check if there is a new challenger
             if not os.path.isfile(self.challenger_location):
                 print('No challenger')
+                if not loop:
+                    return
                 sleep(10)
                 continue
 
@@ -44,23 +47,27 @@ class EvaluateProcess:
             self.challenger.load('challenger')
 
             challenger_wins = 0
-            win_threshold = ceil(self.config.duel_games * self.config.duel_threshold)
+            challenger_win_threshold = round(self.config.duel_games * self.config.duel_threshold)
+            counter_win_threshold = round(self.config.duel_games * (1 - self.config.duel_threshold))
 
             for game_nr in range(self.config.duel_games):
                 game_nr += 1
                 challenger_wins += self.duel()
                 counter_wins = game_nr - challenger_wins
-                print(challenger_wins, '/', game_nr, f'({round(challenger_wins / game_nr, 2)})')
-                print(counter_wins, '/', game_nr, f'({round(counter_wins / game_nr, 2)})')
+                print(challenger_wins, '/', challenger_win_threshold, f'({round(challenger_wins / game_nr, 2)})')
+                print(counter_wins, '/', counter_win_threshold, f'({round(counter_wins / game_nr, 2)})')
+                mlflow.log_metric('win-rate', (challenger_wins / game_nr))
 
                 # The challenger is better
-                if challenger_wins >= win_threshold:
+                if challenger_wins >= challenger_win_threshold:
                     print('Challenger is better')
                     self.challenger.save('best')
+                    mlflow.log_metric('final-win-rate', (challenger_wins / game_nr))
                     break
                 # The best (or draw) won
-                elif counter_wins >= win_threshold:
+                elif counter_wins >= counter_win_threshold:
                     print('Challenger not good enough')
+                    mlflow.log_metric('final-win-rate', (challenger_wins / game_nr))
                     break
 
             # Delete the challenger
@@ -83,26 +90,28 @@ class EvaluateProcess:
             net = next(turns)
             
             # Create a new root node
-            root = StateNode(game=game)
+            root = StateNode(game=game, c_puct=1)
 
             encoded_board = game.encoded()
             policy_pred, value_pred = net.predict(encoded_board)
                 
             # Run MCTS
-            root = mcts(root, self.config.search_depth, net)
+            root = mcts(root, 256, net)
             
             # Get the next policy
-            temperature = 0.1
-            policy = get_policy(root, temperature)
+            if move_count <= 5:
+                temperature = 2
+                policy = get_policy(root, temperature)
+                # Decide the next move based on the policy
+                move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
+            else:
+                move = np.argmax(root.child_number_visits)
             
             print('Turn for:', f'\033[94m{net.version}\033[0m', '(\033[95mX\033[0m)' if game.player == -1 else '(\033[92mO\033[0m)', '\n')
             print('Visits:     ', root.child_number_visits, '\n')
             print('Policy:     ', policy)
             print('Policy pred:', policy_pred, '\n')
             print('Value pred:', value_pred, '\n')
-
-            # Decide the next move based on the policy
-            move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
             
             # Make the move
             game.play(move)

@@ -28,6 +28,10 @@ class Memory:
         """Return game memories in order"""
         return sorted(os.listdir(self.folder), reverse=True, key=lambda filename: int(filename.replace('-', '.').split('.')[1]))
 
+    def n_games(self):
+        """Returns the number of games played"""
+        return len([_ for _ in os.listdir(self.folder)])
+
     def remember(self, game, identifier):
         """
         Store a game in file storage
