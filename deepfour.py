@@ -34,21 +34,14 @@ class ResBlock:
 
         return out
 
-def softmax_cross_entropy_with_logits(y_true, y_pred):
-    import tensorflow as tf
+def objective_function_for_policy(y_true, y_pred):
+    from keras import backend as K
+    return K.sum(-y_true * K.log(y_pred + K.epsilon()), axis=-1)
 
-    p = y_pred
-    pi = y_true
-
-    zero = tf.zeros(shape=tf.shape(pi), dtype=tf.float32)
-    where = tf.equal(pi, zero)
-
-    negatives = tf.fill(tf.shape(pi), -100.0)
-    p = tf.where(where, negatives, p)
-
-    loss = tf.nn.softmax_cross_entropy_with_logits(labels=pi, logits=p)
-
-    return loss
+def objective_function_for_value(y_true, y_pred):
+    from keras import backend as K
+    from keras.losses import mean_squared_error
+    return mean_squared_error(y_true, y_pred)
 
 class DeepFour:
     """
@@ -58,7 +51,7 @@ class DeepFour:
     1. Policy head (the value of all possible plays)
         [0.129, 0.133, 0.176, 0.132, 0.163, 0.142, 0.121]
 
-    2. Value head (the change of winning)
+    2. Value head (the chance of winning)
         [0.58]
     """
 
@@ -112,7 +105,7 @@ class DeepFour:
         value_relu_1 = ReLU()(value_norm)
         value_flat   = Flatten()(value_relu_1)
 
-        value_dense  = Dense(32, kernel_regularizer=l2(self.config.l2_reg))(value_flat)
+        value_dense  = Dense(256, kernel_regularizer=l2(self.config.l2_reg))(value_flat)
         value_relu_2 = ReLU()(value_dense)
 
         # Value output
@@ -126,7 +119,7 @@ class DeepFour:
 
         # Compile
         model.compile(optimizer=SGD(0.01, momentum=0.9),
-                      loss={'value': 'mse', 'policy': softmax_cross_entropy_with_logits},
+                      loss={'value': objective_function_for_value, 'policy': objective_function_for_policy},
                       metrics={'value': [self.mean]})
 
         # Set the model name

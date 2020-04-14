@@ -73,7 +73,7 @@ class StateNode:
     
     def child_U(self):
         """The U value of the children"""
-        return (self.c_puct * sqrt(self.number_visits) * (abs(self.child_priors)) / (1 + self.child_number_visits))
+        return (self.c_puct * sqrt(self.number_visits) * (abs(self.child_priors))) / (1 + self.child_number_visits)
     
     def best_child(self):
         """

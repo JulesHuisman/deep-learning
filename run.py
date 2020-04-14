@@ -27,7 +27,7 @@ memory = Memory(config)
 
 mlflow.set_experiment('deepfour')
 
-with mlflow.start_run(run_name=config.model):
+with mlflow.start_run(run_name=f'{config.model}-{args.process}'):
     try:
         config.set_mlflow()
 

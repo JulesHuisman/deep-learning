@@ -43,8 +43,15 @@ class EvaluateProcess:
                 sleep(10)
                 continue
 
-            self.best.load('best')
-            self.challenger.load('challenger')
+            try:
+                self.best.load('best')
+                self.challenger.load('challenger')
+
+                # Delete the challenger
+                os.remove(self.challenger_location)
+
+            except:
+                continue
 
             challenger_wins = 0
             challenger_win_threshold = round(self.config.duel_games * self.config.duel_threshold)
@@ -61,17 +68,17 @@ class EvaluateProcess:
                 # The challenger is better
                 if challenger_wins >= challenger_win_threshold:
                     print('Challenger is better')
-                    self.challenger.save('best')
+                    try:
+                        self.challenger.save('best')
+                    except:
+                        pass
                     mlflow.log_metric('final-win-rate', (challenger_wins / game_nr))
                     break
-                # The best (or draw) won
+                # The best won
                 elif counter_wins >= counter_win_threshold:
                     print('Challenger not good enough')
                     mlflow.log_metric('final-win-rate', (challenger_wins / game_nr))
                     break
-
-            # Delete the challenger
-            os.remove(self.challenger_location)
 
     def duel(self):
         """
@@ -96,16 +103,18 @@ class EvaluateProcess:
             policy_pred, value_pred = net.predict(encoded_board)
                 
             # Run MCTS
-            root = mcts(root, 256, net)
+            root = mcts(root, self.config.search_depth, net)
             
             # Get the next policy
-            if move_count <= 5:
+            if move_count == 0:
                 temperature = 2
                 policy = get_policy(root, temperature)
                 # Decide the next move based on the policy
                 move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
             else:
                 move = np.argmax(root.child_number_visits)
+                policy = np.zeros(7)
+                policy[move] = 1
             
             print('Turn for:', f'\033[94m{net.version}\033[0m', '(\033[95mX\033[0m)' if game.player == -1 else '(\033[92mO\033[0m)', '\n')
             print('Visits:     ', root.child_number_visits, '\n')

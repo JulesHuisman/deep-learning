@@ -17,18 +17,24 @@ class SelfPlayProcess:
         self.memory = memory
 
     def play(self, log):
-        random.seed()
-        np.random.seed()
-
         from deepfour import DeepFour
 
         # Perform self play with the best model
         net = DeepFour(self.config, only_predict=True)
 
+        step = 0
+
         while True:
+            random.seed()
+            np.random.seed()
+
+            # Store the number of games
             if log:
-                # Store the number of games
                 mlflow.log_metric('n-games', self.memory.n_games())
+
+                if step % 5 == 0:
+                    self.memory.load_memories()
+                    mlflow.log_metric('n-moves', len(self.memory.memory))
 
             net.load('best', log)
 
@@ -48,12 +54,6 @@ class SelfPlayProcess:
                 if log:
                     print('Move:', '\033[95mX\033[0m' if game.player == -1 else '\033[92mO\033[0m', '\n')
                 
-                # Explore for the first 10 moves, after that exploit
-                if move_count <= self.config.exploit_turns:
-                    temperature = 1.1
-                else:
-                    temperature = 0.1
-                
                 # Encoded board
                 encoded_board = deepcopy(game.encoded())
                 
@@ -65,22 +65,32 @@ class SelfPlayProcess:
                             noise_eps=self.config.noise_eps,
                             dirichlet_alpha=self.config.dirichlet_alpha)
                 
-                # Get the next policy
-                policy = get_policy(root, temperature)
-                
-                # Decide the next move based on the policy
-                move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
+                # Explore for the first n moves, after that exploit
+                if move_count <= self.config.exploit_turns:
+                    # Get the next policy
+                    policy = get_policy(root, 1)
+                    # Decide the next move based on the policy
+                    move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
+                else:
+                    policy = get_policy(root, 0.1)
+                    # Decide the next move based on the policy
+                    move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
+                    # move = np.argmax(root.child_number_visits)
+                    # policy = np.zeros(7)
+                    # policy[move] = 1
 
                 # Increase the total moves
                 move_count += 1
 
                 # Make the move
                 game.play(move)
+
+                # Q value of the board state
+                q_value = (root.child_Q()[move])
             
                 # Log status to the console
                 if log:
-                    q_value = (root.child_Q()[move])
-                    self.console_print(encoded_board, game, policy, net, q_value)
+                    self.console_print(encoded_board, game, policy, net, q_value, root.child_number_visits)
                 
                 # Store the intermediate state
                 states.append((encoded_board, policy))
@@ -96,7 +106,7 @@ class SelfPlayProcess:
 
                     value = 1
 
-                    # Store board states for training (alternate )
+                    # Store board states for training
                     for state in states[:0:-1]:
                         states_values.append((state[0], state[1], value))
                         value *= -1
@@ -121,8 +131,10 @@ class SelfPlayProcess:
             # Store games as a side-effect (because of multiprocessing)
             self.memory.remember(states_values[::-1], str(time()).replace('.', '').ljust(17, '0'))
 
+            step += 1
+
     @staticmethod
-    def console_print(encoded_board, game, policy, net, q_value):
+    def console_print(encoded_board, game, policy, net, q_value, visits):
         """
         Log status to the console
         """
@@ -131,11 +143,13 @@ class SelfPlayProcess:
 
         policy_print      = ['{:.2f}'.format(value) for value in policy]
         policy_pred_print = ['{:.2f}'.format(value) for value in policy_estimate]
+        visits_print      = [f'{int(visit)}' for visit in visits]
 
         print('Q value:    ', round(q_value, 2))
         print('Value pred: ', round(value_estimate, 2), '\n')
-        print('Policy:      |', ' | '.join(policy_print), '|')
-        print('Policy pred: |', ' | '.join(policy_pred_print), '|\n')
+        print('Policy pred: |', ' | '.join(policy_pred_print), '|')
+        print('Policy:      |', ' | '.join(policy_print), '|\n')
+        print('Visits: |', ' | '.join(visits_print), '|\n')
 
         game.presentation()
         print()
