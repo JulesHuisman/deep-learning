@@ -69,6 +69,20 @@ class DeepFour:
             backend.set_learning_phase(0)
 
     def _model(self):
+        import tensorflow as tf
+        import keras.backend.tensorflow_backend as K
+
+        def _get_available_gpus():
+            """Get a list of available gpu devices (formatted as strings).
+
+            # Returns
+                A list of available GPU devices.
+            """
+            if K._LOCAL_DEVICES is None:
+                devices = tf.config.list_logical_devices()
+                K._LOCAL_DEVICES = [x.name for x in devices]
+            return [x for x in K._LOCAL_DEVICES if 'device:gpu' in x.lower()]
+
         from keras.models import Model
         from keras.layers import Dense, Input, Conv2D, add, Flatten, BatchNormalization, ReLU
         from keras.optimizers import Adam, SGD
