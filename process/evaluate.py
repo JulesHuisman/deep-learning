@@ -97,7 +97,7 @@ class EvaluateProcess:
             net = next(turns)
             
             # Create a new root node
-            root = StateNode(game=game, c_puct=1)
+            root = StateNode(game=game, c_puct=1, depth=(move_count + 1))
 
             encoded_board = game.encoded()
             policy_pred, value_pred = net.predict(encoded_board)
@@ -106,7 +106,7 @@ class EvaluateProcess:
             root = mcts(root, self.config.search_depth, net)
             
             # Get the next policy
-            if move_count == 0:
+            if move_count <= 1:
                 temperature = 2
                 policy = get_policy(root, temperature)
                 # Decide the next move based on the policy
@@ -119,8 +119,8 @@ class EvaluateProcess:
             print('Turn for:', f'\033[94m{net.version}\033[0m', '(\033[95mX\033[0m)' if game.player == -1 else '(\033[92mO\033[0m)', '\n')
             print('Visits:     ', root.child_number_visits, '\n')
             print('Policy:     ', policy)
-            print('Policy pred:', policy_pred, '\n')
-            print('Value pred:', value_pred, '\n')
+            print('Policy pred:', root.child_priors, '\n')
+            print('Value pred: ', value_pred, '\n')
             
             # Make the move
             game.play(move)

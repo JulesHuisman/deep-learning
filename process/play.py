@@ -22,8 +22,6 @@ class SelfPlayProcess:
         # Perform self play with the best model
         net = DeepFour(self.config, only_predict=True)
 
-        step = 0
-
         while True:
             random.seed()
             np.random.seed()
@@ -32,9 +30,8 @@ class SelfPlayProcess:
             if log:
                 mlflow.log_metric('n-games', self.memory.n_games())
 
-                if step % 5 == 0:
-                    self.memory.load_memories()
-                    mlflow.log_metric('n-moves', len(self.memory.memory))
+                self.memory.load_memories()
+                mlflow.log_metric('n-moves', len(self.memory.memory))
 
             net.load('best', log)
 
@@ -49,7 +46,7 @@ class SelfPlayProcess:
             # Keep playing while the game is not done
             while not done:
                 # Root of the search tree is the current move
-                root = StateNode(game=game, c_puct=self.config.c_puct)
+                root = StateNode(game=game, c_puct=self.config.c_puct, depth=(move_count + 1))
 
                 if log:
                     print('Move:', '\033[95mX\033[0m' if game.player == -1 else '\033[92mO\033[0m', '\n')
@@ -72,7 +69,7 @@ class SelfPlayProcess:
                     # Decide the next move based on the policy
                     move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
                 else:
-                    policy = get_policy(root, 0.1)
+                    policy = get_policy(root, 0.15)
                     # Decide the next move based on the policy
                     move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
                     # move = np.argmax(root.child_number_visits)
@@ -90,7 +87,7 @@ class SelfPlayProcess:
             
                 # Log status to the console
                 if log:
-                    self.console_print(encoded_board, game, policy, net, q_value, root.child_number_visits)
+                    self.console_print(encoded_board, game, policy, net, q_value, root.child_number_visits, root.child_priors)
                 
                 # Store the intermediate state
                 states.append((encoded_board, policy))
@@ -106,9 +103,10 @@ class SelfPlayProcess:
 
                     value = 1
 
-                    # Store board states for training
+                    # Store board states for training (also store mirrored board states)
                     for state in states[:0:-1]:
                         states_values.append((state[0], state[1], value))
+                        states_values.append((np.flip(state[0], -1), np.flip(state[1], -1), value))
                         value *= -1
 
                     # Empty board has no value
@@ -125,21 +123,20 @@ class SelfPlayProcess:
                     # Set all values to 0
                     for state in states:
                         states_values.append((state[0], state[1], 0))
+                        states_values.append((np.flip(state[0], -1), np.flip(state[1], -1), 0))
 
                     done = True
 
             # Store games as a side-effect (because of multiprocessing)
             self.memory.remember(states_values[::-1], str(time()).replace('.', '').ljust(17, '0'))
 
-            step += 1
-
     @staticmethod
-    def console_print(encoded_board, game, policy, net, q_value, visits):
+    def console_print(encoded_board, game, policy, net, q_value, visits, policy_estimate):
         """
         Log status to the console
         """
         # Predict the policy and value of the board state
-        policy_estimate, value_estimate = net.predict(encoded_board)
+        _, value_estimate = net.predict(encoded_board)
 
         policy_print      = ['{:.2f}'.format(value) for value in policy]
         policy_pred_print = ['{:.2f}'.format(value) for value in policy_estimate]

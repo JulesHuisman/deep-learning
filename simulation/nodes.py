@@ -19,7 +19,7 @@ class StateNode:
     Used for Monte Carlo Tree Search.
     https://github.com/plkmo/AlphaZero_Connect4/blob/master/src/MCTS_c4.py
     """
-    def __init__(self, game, c_puct, move=None, parent=DummyNode()):
+    def __init__(self, game, c_puct, depth, move=None, parent=DummyNode()):
         # Game state
         self.game = game
         
@@ -43,6 +43,9 @@ class StateNode:
 
         # Exploration rate
         self.c_puct = c_puct
+
+        # Current depth of node
+        self.depth = depth
 
     @property
     def number_visits(self):
@@ -129,7 +132,7 @@ class StateNode:
             game.play(move)
             
             # Add the child
-            self.children[move] = StateNode(game, move=move, parent=self, c_puct=self.c_puct)
+            self.children[move] = StateNode(game, move=move, parent=self, c_puct=self.c_puct, depth=(self.depth + 1))
             
         return self.children[move]
     
@@ -146,6 +149,14 @@ class StateNode:
 
             # The value for the parent is the inverse of this node
             current.total_value -= value_estimate
+
+            # print('Turn for:', 'O' if current.game.player == 1 else 'X')
+            # print('value_estimate', value_estimate)
+            # print('Value diff', -value_estimate)
+            # print('Total value of state', current.total_value)
+            # print('Value of state for', 'O' if current.game.player == -1 else 'X', current.total_value / current.number_visits, '\n')
+            # current.game.presentation()
+            # print(current.game.encoded())
 
             # Value alternates between nodes, what is a good move for O is a bad move for X
             value_estimate *= -1
