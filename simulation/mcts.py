@@ -6,12 +6,14 @@ def mcts(root, search_depth, net, add_noise=False, noise_eps=0, dirichlet_alpha=
     Decides the next play.
     """
     for _ in range(search_depth):
+        # print('\nNEW SEARCH ------------------------------------------- \n')
         # Select the best leaf (exploit or explore)
         leaf = root.select_leaf()
 
         # If the leaf is a winning state
         if leaf.game.won():
-            leaf.backprop(-1)
+            value = (1.18 - (9 * leaf.depth / 350))
+            leaf.backprop(-value)
             continue
 
         # If the leaf is a draw
@@ -24,6 +26,7 @@ def mcts(root, search_depth, net, add_noise=False, noise_eps=0, dirichlet_alpha=
         
         # Predict the policy and value of the board state
         policy_estimate, value_estimate = net.predict(encoded_board)
+        # policy_estimate, value_estimate = dirichlet_noise(np.array([0.142857, 0.142857, 0.142857, 0.142857, 0.142857, 0.142857, 0.142857]), 0.1, 0.2), np.random.normal(0.0, 0.05)
 
         # Possibly add dirichlet noise to the priors of the root node
         if add_noise and (leaf == root):

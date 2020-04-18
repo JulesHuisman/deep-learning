@@ -8,7 +8,7 @@ import argparse
 import numpy as np
 
 parser = argparse.ArgumentParser(description='Play a game against the AI')
-parser.add_argument('--version', metavar='version', type=str, default='checkpoint', help='Version of the AI to play against')
+parser.add_argument('--version', metavar='version', type=str, default='best', help='Version of the AI to play against')
 
 np.set_printoptions(precision=2, suppress=True, linewidth=150)
 
@@ -22,6 +22,7 @@ class Play:
     def start(self):
         done = False
         move = None
+        move_count = 0
 
         while not done:
             print()
@@ -33,13 +34,15 @@ class Play:
             print()
 
             root = StateNode(game=self.game,
+                             c_puct=1,
+                             depth=(move_count + 1),
                              move=move)
 
             # AI turn
             if self.game.player == -1:
 
                 # Run MCTS
-                root = mcts(root, 512, self.net)
+                root = mcts(root, 700, self.net)
 
                 # Move to the node with the most visits
                 move = np.argmax(root.child_number_visits)
@@ -56,6 +59,8 @@ class Play:
 
             # Play the stone
             self.game.play(move)
+
+            move_count += 1
 
             # Game was won
             if self.game.won():

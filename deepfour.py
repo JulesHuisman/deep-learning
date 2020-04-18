@@ -9,26 +9,28 @@ class ResBlock:
     """
     Custom class to create a residual block consisting of two convolution layers
     """
-    def __new__(self, inputs, filters, l2_reg):
+    def __new__(self, inputs, filters, kernel, l2_reg):
         from keras.layers import Conv2D, add, BatchNormalization, ReLU
         from keras.regularizers import l2
 
         residual = inputs
     
         conv_1 = Conv2D(filters,
-                        (4, 4),
+                        (kernel, kernel),
                         padding='same',
+                        data_format='channels_first',
                         kernel_regularizer=l2(l2_reg))(inputs)
 
-        norm_1 = BatchNormalization()(conv_1)
+        norm_1 = BatchNormalization(axis=1)(conv_1)
         relu_1 = ReLU()(norm_1)
 
         conv_2 = Conv2D(filters,
-                        (4, 4),
+                        (kernel, kernel),
                         padding='same',
+                        data_format='channels_first',
                         kernel_regularizer=l2(l2_reg))(relu_1)
 
-        norm_2 = BatchNormalization()(conv_2)
+        norm_2 = BatchNormalization(axis=1)(conv_2)
         out = add([residual, norm_2])
         out = ReLU()(out)
 
@@ -75,21 +77,25 @@ class DeepFour:
         from tensorflow.python.util import deprecation
         deprecation._PRINT_DEPRECATION_WARNINGS = False
 
-        board_input = Input(shape=(6, 7, 3))
+        board_input = Input(shape=(2, 6, 7))
 
         # Start conv block
-        conv_1 = Conv2D(self.config.n_filters, (4, 4), padding='same', kernel_regularizer=l2(self.config.l2_reg))(board_input)
-        norm_1 = BatchNormalization()(conv_1)
+        conv_1 = Conv2D(self.config.n_filters,
+                        (self.config.kernel, self.config.kernel),
+                        padding='same',
+                        data_format='channels_first',
+                        kernel_regularizer=l2(self.config.l2_reg))(board_input)
+        norm_1 = BatchNormalization(axis=1)(conv_1)
         relu_1 = ReLU()(norm_1)
         res = relu_1
 
         # Residual convolution blocks
         for _ in range(self.config.res_layers):
-            res = ResBlock(res, self.config.n_filters, self.config.l2_reg)
+            res = ResBlock(res, self.config.n_filters, self.config.kernel, self.config.l2_reg)
 
         # Policy head
-        policy_conv = Conv2D(2, (1, 1), kernel_regularizer=l2(self.config.l2_reg))(res)
-        policy_norm = BatchNormalization()(policy_conv)
+        policy_conv = Conv2D(2, (1, 1), data_format='channels_first', kernel_regularizer=l2(self.config.l2_reg))(res)
+        policy_norm = BatchNormalization(axis=1)(policy_conv)
         policy_relu = ReLU()(policy_norm)
         policy_flat = Flatten()(policy_relu)
 
@@ -100,12 +106,12 @@ class DeepFour:
                        kernel_regularizer=l2(self.config.l2_reg))(policy_flat)
 
         # Value head
-        value_conv   = Conv2D(1, (1, 1), kernel_regularizer=l2(self.config.l2_reg))(res)
-        value_norm   = BatchNormalization()(value_conv)
+        value_conv   = Conv2D(1, (1, 1), data_format='channels_first', kernel_regularizer=l2(self.config.l2_reg))(res)
+        value_norm   = BatchNormalization(axis=1)(value_conv)
         value_relu_1 = ReLU()(value_norm)
         value_flat   = Flatten()(value_relu_1)
 
-        value_dense  = Dense(256, kernel_regularizer=l2(self.config.l2_reg))(value_flat)
+        value_dense  = Dense(self.config.value_dense, kernel_regularizer=l2(self.config.l2_reg))(value_flat)
         value_relu_2 = ReLU()(value_dense)
 
         # Value output
@@ -118,7 +124,7 @@ class DeepFour:
         model = Model(inputs=[board_input], outputs=[policy, value])
 
         # Compile
-        model.compile(optimizer=SGD(0.01, momentum=0.9),
+        model.compile(optimizer=SGD(0.001, momentum=0.9),
                       loss={'value': objective_function_for_value, 'policy': objective_function_for_policy},
                       metrics={'value': [self.mean]})
 
@@ -151,14 +157,16 @@ class DeepFour:
         """
         import keras.backend as K
 
-        if total_steps < 500:
-            lr = 0.01
-        elif total_steps < 2000:
-            lr = 0.001
-        elif total_steps < 9000:
-            lr = 0.0001
-        else:
-            lr = 0.000025
+        # if total_steps < 500:
+        #     lr = 0.01
+        # elif total_steps < 2000:
+        #     lr = 0.001
+        # elif total_steps < 9000:
+        #     lr = 0.0001
+        # else:
+        #     lr = 0.000025
+
+        lr = 0.001
             
         mlflow.log_metric('learning-rate', lr, total_steps)
         K.set_value(self.model.optimizer.lr, lr)

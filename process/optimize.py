@@ -29,13 +29,14 @@ class OptimizeProcess:
         total_steps = self.last_version() * self.config.checkpoint_steps
         update_steps = total_steps % self.config.update_steps
         self.memory.load_memories()
+        self.evaluate.evaluate(loop=False)
 
         while True:
             print(f'Total steps: {total_steps} | Checkpoint steps: {checkpoint_steps} | Update steps: {update_steps} | Memory size: {len(self.memory.memory)}')
 
             # Not enough data yet
             # if len(self.memory.memory) < self.config.memory_size:
-            if len(self.memory.memory) < 5000:
+            if len(self.memory.memory) < 50000:
                 print(f'Not enough data yet ({len(self.memory.memory)})')
                 sleep(60)
                 self.memory.load_memories()
@@ -56,14 +57,14 @@ class OptimizeProcess:
                 self.checkpoint.save('checkpoint')
 
                 # Apply the learning rate schedule
-                self.checkpoint.update_lr(total_steps)
+                # self.checkpoint.update_lr(total_steps)
 
                 checkpoint_steps = 0
 
             # Create a new challenger every n steps
             if update_steps >= self.config.update_steps:
                 self.checkpoint.save('challenger')
-                # self.evaluate.evaluate(loop=False)
+                self.evaluate.evaluate(loop=False)
                 update_steps = 0
 
     def train(self, total_steps):

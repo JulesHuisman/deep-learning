@@ -1,9 +1,9 @@
 data/*
-!data/DeepFour-V1
-data/DeepFour-V1/*
-!data/DeepFour-V1/models
-data/DeepFour-V1/models/*
-!data/DeepFour-V1/models/DeepFour-V1-checkpoint.h5
+!data/DeepFour-V7
+data/DeepFour-V7/*
+!data/DeepFour-V7/models
+data/DeepFour-V7/models/*
+!data/DeepFour-V7/models/DeepFour-V7.best.h5
 
 # Ml flow
 mlruns

@@ -9,7 +9,6 @@ class Game:
         self.empty = np.zeros((6, 7)).astype(int)
         self.board = self.empty.copy()
         self.player = [-1, 1][np.random.randint(2)]
-        # self.player = 1
 
     def play(self, col):
         # Don't play if the column is full
@@ -64,22 +63,25 @@ class Game:
 
     def encoded(self):
         """
-        Transform the board state to three layers:
-        1. One hot encoded positions of player -1
-        2. One hot encoded positions of player 1
-        3. Uniform layer which encodes the current player (0 for for player -1, 1 for player 1)
+        Encode the board state to make it readable by the neural network.
+        The first board are the cells of the current player, the second board are the cells of the opponent.
         """
         # https://gist.github.com/plkmo/4c552a4bfa9a8e53f1d3168f4dca6ae0#file-encoder_c4
-        encoded = np.zeros([6, 7, 3]).astype(int)
-        encoder_dict = {-1: 0, 1: 1}
+        encoded = np.zeros([2, 6, 7]).astype(int)
 
         for row in range(6):
             for col in range(7):
-                if self.board[row, col] != 0:
-                    encoded[row, col, encoder_dict[self.board[row, col]]] = 1
-        if self.player == 1:
-            # player to move
-            encoded[:, :, 2] = 1
+                if self.board[row, col] == 1:
+                    if self.player == 1:
+                        encoded[0, row, col] = 1
+                    else:
+                        encoded[1, row, col] = 1
+                elif self.board[row, col] == -1:
+                    if self.player == 1:
+                        encoded[1, row, col] = 1
+                    else:
+                        encoded[0, row, col] = 1
+        
         return encoded
 
     def moves(self):
