@@ -1,8 +1,7 @@
 import os
-import matplotlib.pyplot as plt
 import numpy as np
-import mlflow
 
+os.environ['KMP_WARNINGS'] = 'off'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class ResBlock:
@@ -156,6 +155,7 @@ class DeepFour:
         https://github.com/Zeta36/connect4-alpha-zero/blob/master/src/connect4_zero/worker/optimize.py
         """
         import keras.backend as K
+        import mlflow
 
         # if total_steps < 500:
         #     lr = 0.01
@@ -167,7 +167,6 @@ class DeepFour:
         #     lr = 0.000025
 
         lr = 0.001
-            
         mlflow.log_metric('learning-rate', lr, total_steps)
         K.set_value(self.model.optimizer.lr, lr)
 

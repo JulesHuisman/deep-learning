@@ -97,7 +97,7 @@ class EvaluateProcess:
             net = next(turns)
             
             # Create a new root node
-            root = StateNode(game=game, c_puct=1, depth=(move_count + 1))
+            root = StateNode(game=game, c_puct=1.5, depth=(move_count + 1))
 
             encoded_board = game.encoded()
             policy_pred, value_pred = net.predict(encoded_board)

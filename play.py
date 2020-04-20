@@ -34,13 +34,12 @@ class Play:
             print()
 
             root = StateNode(game=self.game,
-                             c_puct=1,
+                             c_puct=1.5,
                              depth=(move_count + 1),
                              move=move)
 
             # AI turn
             if self.game.player == -1:
-
                 # Run MCTS
                 root = mcts(root, 700, self.net)
 
@@ -76,7 +75,7 @@ class Play:
 
 if __name__ == '__main__':
     game = Game()
-    net = DeepFour(Config())
+    net = DeepFour(Config(), only_predict=True)
     net.load(args.version)
     
     play = Play(game, net)

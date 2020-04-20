@@ -1,5 +1,4 @@
 import json
-import mlflow
 
 class Config:
     """
@@ -16,6 +15,7 @@ class Config:
         """
         Store parameters in mlflow
         """
+        import mlflow
         with open('settings.json', 'r') as f:
             settings = json.load(f)
 
