@@ -1,6 +1,6 @@
 {
     "model": "DeepFour-V7",
-    "workers": 16,
+    "workers": 3,
     "search_depth": 700,
     "c_puct": 2,
     "exploit_turns": 5,

@@ -1,0 +1,147 @@
+body {
+    background: #151517;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    font-family: 'Roboto', arial;
+}
+
+h1 {
+    font-style: italic;
+    color: #fafafa;
+    font-size: 45px;
+    margin: 0 0 8px 0;
+}
+
+h4 {
+    font-style: italic;
+    color: #d7d6da;
+    font-weight: 100;
+    margin: 0 0 25px 0;
+}
+
+#win-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 1s ease;
+}
+
+#win-screen.visible {
+    visibility: visible;
+}
+
+#win-screen.opacity {
+    opacity: 1;
+}
+
+#win-screen h1 {
+    font-size: 50px;
+}
+
+#turn-bar {
+    display: flex;
+    flex-direction: row;
+    margin: 0 0 25px 0;
+}
+
+#turn-bar .turn {
+    width: 70px;
+    background: #e63e98;
+    padding: 8px 0;
+    margin: 0 10px;
+    border-radius: 7px;
+    color: #151517;
+    transition: opacity .3s ease;
+}
+
+#turn-bar .turn.you {
+    width: 75px;
+    background: #40d674;
+}
+
+#turn-bar .turn.disabled {
+    opacity: 0.3;
+}
+
+#board {
+    background: #28282b;
+    box-shadow: 5px 5px 20px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+}
+
+#board .cell {
+    width: 90px;
+    height: 90px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#board .cell:nth-child(even) {
+    background: #34343a;
+}
+
+#board .cell:nth-child(36) {
+    border-bottom-left-radius: 10px;
+}
+
+#board .cell:nth-child(42) {
+    border-bottom-right-radius: 10px;
+}
+
+#board .cell .stone {
+    width: 55px;
+    height: 55px;
+    border-radius: 28px;
+    background: #40d674;
+    margin: auto;
+    box-shadow: 2px 2px 15px rgb(0, 0, 0, 0.1);
+}
+
+#board .cell .stone.red {
+    background: #e63e98;
+}
+
+#action-bar {
+    font-size: 0;
+    width: 620px;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 40px;
+}
+
+#action-bar button {
+    width: 90px;
+    height: 70px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #a7a5ac;
+    font-family: 'Bangers', arial;
+    margin: 0;
+    padding: 0;
+    box-sizing: content-box;
+    border: none;
+    outline: none;
+    font-size: 25px;
+    border-radius: 5px;
+    transition: color .2s ease;
+}
+
+#action-bar button:hover {
+    cursor: pointer;
+    color: #f5f5f8;
+}

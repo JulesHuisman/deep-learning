@@ -57,7 +57,7 @@ class DeepFour:
     """
 
     def __init__(self, config, only_predict=False):
-        self.config  = config
+        self.config = config
 
         # Create the model
         self.model = self._model()

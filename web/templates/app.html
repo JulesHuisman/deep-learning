@@ -1,0 +1,35 @@
+<html>
+    <head>
+        <title>DeepFour</title>
+        <link rel="stylesheet" href="/css/stylesheet.css">
+        <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,900;1,400;1,700&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <h1>DeepFour</h1>
+        <h4>AlphaGo Zero for connect four</h4>
+
+        <div id="win-screen">
+            <h1>You lost!</h1>
+        </div>
+
+        <div id="turn-bar">
+            <div class="turn disabled">AI</div>
+            <div class="turn disabled you">YOU</div>
+        </div>
+
+        <div id="board">
+            {% for idx in range(42) %}
+                <div class="cell"></div>
+            {% endfor %}
+        </div>
+
+        <div id="action-bar">
+            {% for idx in range(1, 8) %}
+                <button onclick="humanPlays('{{idx}}')">{{idx}}</button>
+            {% endfor %}
+        </div>
+
+        <script src="js/script.js"></script>
+    </body>
+</html>
