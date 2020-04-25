@@ -4,14 +4,13 @@
         <link rel="stylesheet" href="/css/stylesheet.css">
         <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,900;1,400;1,700;1,100&display=swap" rel="stylesheet">
+        <script src="js/confetti.min.js"></script>
     </head>
     <body>
         <h1>DeepFour</h1>
         <h4>AlphaGo Zero for connect four</h4>
 
-        <div id="win-screen">
-            <h1>You lost!</h1>
-        </div>
+        <div id="win-screen"><h1></h1></div>
 
         <div id="win-rate">
             <h4>AI Win rate</h4>
@@ -42,6 +41,7 @@
             {% endfor %}
         </div>
 
-        <script src="js/script.js"></script>
     </body>
+    <script src="https://cdn.jsdelivr.net/gh/mathusummut/confetti.js/confetti.min.js"></script>
+    <script src="js/script.js"></script>
 </html>

@@ -56,6 +56,12 @@ function showWinScreen(message, timeout=1500) {
         cells = new Array(42).fill(0);
         showStones(cells);
     }, timeout + 500)
+
+    // Show confetti
+    if (message == 'You won!') {
+        confetti.start()
+        setTimeout(() => confetti.stop(), timeout)
+    }
 }
 
 async function aiPlays() {
