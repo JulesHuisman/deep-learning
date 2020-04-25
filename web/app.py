@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tensorflow as tf
 
@@ -25,6 +26,9 @@ app = Flask(__name__,
             static_folder='static',
             template_folder='templates')
 
+def number_of_files(folder):
+    return len([name for name in os.listdir(os.path.join('results', folder)) if name.endswith('.npy')])
+
 @app.route('/play/ai', methods=['POST'])
 def ai_plays():
     flat_board = request.json['cells']
@@ -48,8 +52,13 @@ def human_plays():
     return response
 
 @app.route('/')
-def hello():
-    return render_template('app.html')
+def main():
+    ai_wins = number_of_files('wins')
+    ai_loss = number_of_files('losses')
+
+    win_rate = int(round((ai_wins / (ai_wins + ai_loss)) * 100))
+
+    return render_template('app.html', win_rate=win_rate, ai_wins=ai_wins, user_wins=ai_loss)
     
 if __name__ == '__main__':
     app.run(host='0.0.0.0')

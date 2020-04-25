@@ -22,6 +22,28 @@ h4 {
     margin: 0 0 25px 0;
 }
 
+#win-rate {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    left: 50px;
+}
+
+#win-rate h4 {
+    margin: 0;
+}
+
+#win-rate p {
+    color: #aaa9af;
+    font-weight: 100;
+    font-style: italic;
+}
+
+#win-rate.user {
+    left: auto;
+    right: 50px;
+}
+
 #win-screen {
     position: absolute;
     top: 0;
@@ -63,6 +85,7 @@ h4 {
     border-radius: 7px;
     color: #151517;
     transition: opacity .3s ease;
+    font-weight: 700;
 }
 
 #turn-bar .turn.you {

@@ -3,7 +3,7 @@
         <title>DeepFour</title>
         <link rel="stylesheet" href="/css/stylesheet.css">
         <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,900;1,400;1,700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,900;1,400;1,700;1,100&display=swap" rel="stylesheet">
     </head>
     <body>
         <h1>DeepFour</h1>
@@ -11,6 +11,18 @@
 
         <div id="win-screen">
             <h1>You lost!</h1>
+        </div>
+
+        <div id="win-rate">
+            <h4>AI Win rate</h4>
+            <h1>{{win_rate}}%</h1>
+            <p>({{ai_wins}} games)</p>
+        </div>
+
+        <div id="win-rate" class="user">
+            <h4>User Win rate</h4>
+            <h1>{{100 - win_rate}}%</h1>
+            <p>({{user_wins}} games)</p>
         </div>
 
         <div id="turn-bar">
