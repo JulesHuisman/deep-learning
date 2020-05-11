@@ -63,9 +63,9 @@ The actual neural network. The structure of the network is as follows:
 | Value dense | 32 |  | Relu |
 | Value dense | 1 |  | Tanh |
 
-Overall the network is a (way) more shallow version of the AlphaGo Zero network. But as connect four is simpler game this makes sense. The kernels were changed to 4x4 to capture 16 stones at once.
+Overall the network is a (way) more shallow version of the AlphaGo Zero network. But as connect four is a simpler game this makes sense. The kernels were changed to 4x4 to capture 16 stones at once.
 
-A L2 regulation value of `0.0001` is introduced to prevent the model from overfitting on the training data.
+A L2 regulation value of 0.0001 is introduced to prevent the model from overfitting on the training data.
 
 #### Processes
 The three main processes of DeepFour
