@@ -1,7 +1,7 @@
 # DeepFour
 Project for the deep learning course. The mechanics are inspired by the AlphaZero AI from DeepMind.
 
-You can play against DeepFour here: juleshuisman.com
+You can play against DeepFour here: www.juleshuisman.com
 
 #### Simulations
 All parts needed to play games
