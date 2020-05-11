@@ -61,4 +61,4 @@ def main():
     return render_template('app.html', win_rate=win_rate, ai_wins=ai_wins, user_wins=ai_loss)
     
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', debug=True)

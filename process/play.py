@@ -72,9 +72,6 @@ class SelfPlayProcess:
                     policy = get_policy(root, 0.15)
                     # Decide the next move based on the policy
                     move = np.random.choice(np.array([0, 1, 2, 3, 4, 5, 6]), p=policy)
-                    # move = np.argmax(root.child_number_visits)
-                    # policy = np.zeros(7)
-                    # policy[move] = 1
 
                 # Increase the total moves
                 move_count += 1

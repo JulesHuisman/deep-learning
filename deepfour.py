@@ -149,27 +149,6 @@ class DeepFour:
         """Shows the structure of the network"""
         return plot_model(self.model, show_shapes=True, dpi=64)
 
-    def update_lr(self, total_steps):
-        """
-        Use a learning rate schedule to lower the learning rate over time
-        https://github.com/Zeta36/connect4-alpha-zero/blob/master/src/connect4_zero/worker/optimize.py
-        """
-        import keras.backend as K
-        import mlflow
-
-        # if total_steps < 500:
-        #     lr = 0.01
-        # elif total_steps < 2000:
-        #     lr = 0.001
-        # elif total_steps < 9000:
-        #     lr = 0.0001
-        # else:
-        #     lr = 0.000025
-
-        lr = 0.001
-        mlflow.log_metric('learning-rate', lr, total_steps)
-        K.set_value(self.model.optimizer.lr, lr)
-
     def load(self, postfix, log=True):
         """Load model weights"""
         try:

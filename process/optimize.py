@@ -56,9 +56,6 @@ class OptimizeProcess:
                 self.checkpoint.save(self.last_version() + 1)
                 self.checkpoint.save('checkpoint')
 
-                # Apply the learning rate schedule
-                # self.checkpoint.update_lr(total_steps)
-
                 checkpoint_steps = 0
 
             # Create a new challenger every n steps

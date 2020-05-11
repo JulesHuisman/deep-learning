@@ -6,7 +6,7 @@
     "exploit_turns": 5,
     "noise_eps": 0.2,
     "dirichlet_alpha": 1.0,
-    "memory_size": 500000,
+    "memory_size": 600000,
     "batch_size": 512,
     "n_filters": 64,
     "kernel": 4,
