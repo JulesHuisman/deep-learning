@@ -18,7 +18,7 @@ All parts needed to play games
 ```
 simulation/game.py
 ```
-Class used to represent a game. It is able to check if a game was won, and can encode the board state to feed it to the neural network. AlphaZero encodes the current player in a third dimension, however this made DeepFour behave differently depending on the players turn. I adjusted it two only two dimensions, where the first dimension are the (hot) encoded stones of the current player.
+Class used to represent a game. It is able to check if a game was won, and can encode the board state to feed it to the neural network. AlphaZero encodes the current player in a third dimension, however this made DeepFour behave differently depending on the players turn. I adjusted it to only two dimensions, where the first dimension is the (hot) encoded stones of the current player.
 
 ##### mcts.py
 
